@@ -1,0 +1,19 @@
+# Cloudflare Pages project config — tops-pizza-site
+# Bindings needed by /functions/api/feedback.js
+name = "tops-pizza-site"
+compatibility_date = "2026-01-01"
+pages_build_output_dir = "dist"
+
+# D1 database binding — used by /api/feedback to insert leads
+# Replace database_id after running `wrangler d1 create tops-pizza-leads`
+[[d1_databases]]
+binding = "DB"
+database_name = "tops-pizza-leads"
+database_id = "6dcf7f3c-9b25-4c63-bcb1-46a6b2d3a7c7"
+
+# Environment variables set via Cloudflare dashboard (Settings > Environment variables):
+#   TWILIO_ACCOUNT_SID     — your Twilio account SID (ACxxxxxxxx)
+#   TWILIO_AUTH_TOKEN      — your Twilio auth token (mark as encrypted/secret)
+#   TWILIO_FROM_NUMBER     — your Canadian Twilio number in E.164 (+14035551234)
+#   COUPON_CODE_PREFIX     — e.g. "TOPS" → codes like TOPS-A4F2
+#   DRY_RUN                — "true" to log instead of sending real SMS (for testing)

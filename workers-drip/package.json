@@ -1,0 +1,10 @@
+{
+  "name": "tops-pizza-drip",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "deploy": "npx wrangler deploy",
+    "tail": "npx wrangler tail",
+    "manual-run": "echo 'curl https://tops-pizza-drip.<your-subdomain>.workers.dev/?key=YOUR_MANUAL_RUN_KEY'"
+  }
+}

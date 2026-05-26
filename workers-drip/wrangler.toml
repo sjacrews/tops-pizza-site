@@ -1,0 +1,22 @@
+# Cloudflare Worker — scheduled SMS drip for TOPS Pizza
+# Runs daily at 11:00 UTC (~ noon Calgary in winter, ~ 5am Calgary in summer)
+# Adjust the cron if you want a different send time.
+#
+# Deploy: cd workers-drip && wrangler deploy
+name = "tops-pizza-drip"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# Same D1 database as the Pages project — read leads, mark drips as sent
+[[d1_databases]]
+binding = "DB"
+database_name = "tops-pizza-leads"
+database_id = "6dcf7f3c-9b25-4c63-bcb1-46a6b2d3a7c7"
+
+# Scheduled trigger — daily check for leads aged 30 or 60 days
+[triggers]
+crons = ["0 18 * * *"]  # 18:00 UTC = noon MST / 1pm MDT (Calgary)
+
+# Same Twilio env vars as the Pages project
+# Set via: wrangler secret put TWILIO_AUTH_TOKEN
+#         (Or in dashboard for SID + from-number + dry-run)

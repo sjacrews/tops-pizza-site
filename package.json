@@ -1,0 +1,12 @@
+{
+  "name": "tops-pizza-site",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "preview": "python3 -m http.server --directory dist 8080",
+    "deploy": "npx wrangler pages deploy dist --project-name=tops-pizza-site --branch=main"
+  },
+  "license": "UNLICENSED"
+}

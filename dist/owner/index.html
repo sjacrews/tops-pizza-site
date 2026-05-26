@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8" />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Owner Portal — TOPS Pizza</title>
+<meta name="description" content="Request changes to topspizza.ca — for the owners." />
+<link rel="canonical" href="https://topspizza.ca/owner/" />
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="restaurant" />
+<meta property="og:site_name" content="TOPS Pizza &amp; Sports Bar" />
+<meta property="og:title" content="Owner Portal — TOPS Pizza" />
+<meta property="og:description" content="Request changes to topspizza.ca — for the owners." />
+<meta property="og:url" content="https://topspizza.ca/owner/" />
+<meta property="og:image" content="https://topspizza.ca/assets/og-image.png" />
+<meta property="og:locale" content="en_CA" />
+<meta property="business:contact_data:street_address" content="5602 4 St NW" />
+<meta property="business:contact_data:locality" content="Calgary" />
+<meta property="business:contact_data:region" content="AB" />
+<meta property="business:contact_data:postal_code" content="T2K 1B2" />
+<meta property="business:contact_data:country_name" content="Canada" />
+<meta property="business:contact_data:phone_number" content="(403) 275-2722" />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Owner Portal — TOPS Pizza" />
+<meta name="twitter:description" content="Request changes to topspizza.ca — for the owners." />
+
+<!-- Schema.org JSON-LD -->
+<script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@graph": []
+}</script>
+
+<link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="logo" href="/" aria-label="TOPS Pizza &amp; Sports Bar — home">
+      <img src="https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e6643bc5f22a097daa2132.png" alt="TOPS Pizza &amp; Sports Bar logo" width="120" height="60" loading="eager" />
+    </a>
+    <nav class="primary-nav" aria-label="Main">
+      <a href="/">Home</a>
+      <a href="/about/">About</a>
+      <a href="/sports-bar/">Sports Bar</a>
+      <a href="/thorncliffe/">Delivery</a>
+      <a href="/the-thorncliffe-pizza/">Pizza</a>
+    </nav>
+    <a class="order-cta" href="tel:+14032752722">
+      <span class="cta-label">Order:</span> (403) 275-2722
+    </a>
+  </div>
+</header>
+<main>
+
+<section class="hero hero-page">
+  <div class="wrap">
+    <p class="eyebrow">Internal — TOPS Owners Only</p>
+    <h1>Request a Site Change</h1>
+    <p class="lede">Type or speak what you want changed. Steve gets a text message right away, makes the change, and pushes it live — usually same day for small things.</p>
+  </div>
+</section>
+
+<section class="prose wrap" style="max-width:680px;">
+  <form id="owner-form" class="feedback-form" method="POST" novalidate>
+
+    <label>
+      <span class="field-label">What kind of change?</span>
+      <select name="category" required>
+        <option value="specials">Daily special (Monday/Tuesday/etc)</option>
+        <option value="menu">Menu item (pizza, wings, etc)</option>
+        <option value="hours">Hours change</option>
+        <option value="content">Other page content (about, sports bar, etc)</option>
+        <option value="photo">Photo update</option>
+        <option value="other">Something else</option>
+      </select>
+    </label>
+
+    <label>
+      <span class="field-label">How urgent?</span>
+      <div class="sentiment-row">
+        <label class="sentiment"><input type="radio" name="urgency" value="low" checked /><span>📝 Whenever</span></label>
+        <label class="sentiment"><input type="radio" name="urgency" value="medium" /><span>⚠️ This week</span></label>
+        <label class="sentiment"><input type="radio" name="urgency" value="high" /><span>🚨 ASAP</span></label>
+      </div>
+    </label>
+
+    <label>
+      <span class="field-label">What do you want changed?</span>
+      <textarea name="request_text" id="request-text" rows="8" required placeholder="e.g. Monday special is now half-price wings 5–8 PM. Or: change Tuesday night football special wording. Or: add a new pizza called The Olympian — feta, kalamata, gyro meat, tzatziki drizzle."></textarea>
+      <button type="button" id="voice-btn" class="btn btn-secondary" style="margin-top:8px; align-self:flex-start; color:var(--black); border-color:var(--gold);">
+        🎤 Or tap to speak instead
+      </button>
+      <span id="voice-status" class="text-small" style="margin-top:4px;"></span>
+    </label>
+
+    <button type="submit" class="btn btn-primary">Send Request to Steve</button>
+    <p class="form-status" id="owner-status" role="status" aria-live="polite"></p>
+  </form>
+
+  <div style="margin-top:40px; padding:20px; background:var(--cream); border-radius:8px;">
+    <h3 style="margin-bottom:8px;">Tips for fast turnaround</h3>
+    <ul style="margin-bottom:0; font-size:14px; color:var(--grey-700);">
+      <li>Be specific: "change Monday special to ’half price wings 5–8 PM, dine-in only’" beats "update Monday special".</li>
+      <li>For menu items: include the full name, ingredients, and what makes it special.</li>
+      <li>For hours: list the day(s) and the exact new opening / closing time.</li>
+      <li>For photos: describe what photo you want where, and text Steve the file.</li>
+    </ul>
+  </div>
+</section>
+
+<script>
+  (function(){
+    const form = document.getElementById('owner-form');
+    const status = document.getElementById('owner-status');
+    const textarea = document.getElementById('request-text');
+    const voiceBtn = document.getElementById('voice-btn');
+    const voiceStatus = document.getElementById('voice-status');
+
+    // Form submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      status.textContent = 'Sending…';
+      status.className = 'form-status sending';
+      const data = Object.fromEntries(new FormData(form));
+      try {
+        const res = await fetch('/api/owner-request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          status.textContent = 'Sent! Steve got the notification. Request #' + (json.requestId || '?');
+          status.className = 'form-status';
+          form.reset();
+        } else {
+          status.textContent = 'Something went wrong. Try again or text Steve directly.';
+          status.className = 'form-status error';
+        }
+      } catch (err) {
+        status.textContent = 'Network error. Try again or text Steve directly.';
+        status.className = 'form-status error';
+      }
+    });
+
+    // Web Speech API for voice input — browser-native, no API key
+    const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Speech) {
+      voiceBtn.disabled = true;
+      voiceStatus.textContent = 'Voice input not supported in this browser. Try Chrome or Safari.';
+    } else {
+      let recognition = null;
+      let listening = false;
+      voiceBtn.addEventListener('click', () => {
+        if (listening) {
+          recognition && recognition.stop();
+          return;
+        }
+        recognition = new Speech();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-CA';
+        let finalText = textarea.value;
+        recognition.onresult = (e) => {
+          let interim = '';
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) finalText += (finalText ? ' ' : '') + e.results[i][0].transcript;
+            else interim += e.results[i][0].transcript;
+          }
+          textarea.value = finalText + (interim ? ' ' + interim : '');
+        };
+        recognition.onstart = () => {
+          listening = true;
+          voiceBtn.textContent = '⏹ Tap to stop';
+          voiceStatus.textContent = 'Listening… speak naturally.';
+        };
+        recognition.onerror = (e) => {
+          voiceStatus.textContent = 'Voice error: ' + e.error + '. Type instead.';
+        };
+        recognition.onend = () => {
+          listening = false;
+          voiceBtn.textContent = '🎤 Or tap to speak instead';
+          if (voiceStatus.textContent.startsWith('Listening')) voiceStatus.textContent = '';
+        };
+        recognition.start();
+      });
+    }
+  })();
+</script>
+
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-grid">
+    <div>
+      <h3>TOPS Pizza &amp; Sports Bar</h3>
+      <p>Where cold beer meets hot pizza — and the game’s always on.</p>
+      <p><strong>5602 4 St NW</strong><br/>Calgary, AB T2K 1B2</p>
+      <p><a href="tel:+14032752722">(403) 275-2722</a></p>
+    </div>
+    <div>
+      <h3>Hours</h3>
+      <ul class="hours">
+        <li><span>Monday</span><span>11 AM – 12 AM</span></li><li><span>Tuesday</span><span>10 AM – 1 AM</span></li><li><span>Wednesday</span><span>10 AM – 1 AM</span></li><li><span>Thursday</span><span>10 AM – 1 AM</span></li><li><span>Friday</span><span>10 AM – 2 AM</span></li><li><span>Saturday</span><span>10 AM – 2 AM</span></li><li><span>Sunday</span><span>11 AM – 12 AM</span></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Order</h3>
+      <p><a href="tel:+14032752722">Call us — (403) 275-2722</a></p>
+      <p>Or order via:</p>
+      <ul class="thirdparty">
+        <li><a href="https://www.skipthedishes.com/tops-pizza-and-sports-bar-4th-street-northwest" rel="noopener">Skip the Dishes</a></li>
+        <li><a href="https://www.ubereats.com/ca/store/tops-pizza/Jj7lcjQGSmaveypFsPhsZQ" rel="noopener">Uber Eats</a></li>
+        <li><a href="https://order.online/store/tops-pizza-&-spotrs-bar-calgary-99576/" rel="noopener">DoorDash</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Delivery Areas</h3>
+      <ul class="neighborhoods">
+        <li>Thorncliffe</li><li>Huntington Hills</li><li>North Haven Upper</li><li>North Haven</li><li>Highland Park</li><li>Queens Park</li><li>Tuxedo Park</li><li>Capitol Hill</li><li>Charleswood</li><li>Mt Pleasant</li>
+        <li><em>+ 10 more NW Calgary communities</em></li>
+      </ul>
+    </div>
+  </div>
+  <div class="wrap subfooter">
+    <p>&copy; 2026 TOPS Pizza &amp; Sports Bar. 51 years in NW Calgary.</p>
+  </div>
+</footer>
+</body>
+</html>

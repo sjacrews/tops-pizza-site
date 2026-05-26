@@ -1,0 +1,9 @@
+# TOPS Pizza — VPS Claude owner-request processor
+# Run every 15 minutes during business hours (11am-11pm Calgary)
+# Adjust hours for your VPS's timezone (these are MST/MDT examples)
+
+# Every 15 min, 11am - 11pm MST/MDT
+*/15 11-23 * * * cd /opt/tops-pizza-site && ./vps-claude-jobs/process-owner-requests/process.sh >> vps-claude-jobs/process-owner-requests/cron.log 2>&1
+
+# Once daily at midnight, weekly summary text to Steve
+0 0 * * * cd /opt/tops-pizza-site && ./vps-claude-jobs/process-owner-requests/daily-summary.sh >> vps-claude-jobs/process-owner-requests/cron.log 2>&1
