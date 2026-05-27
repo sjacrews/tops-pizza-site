@@ -17,3 +17,14 @@ database_id = "6dcf7f3c-9b25-4c63-bcb1-46a6b2d3a7c7"
 #   TWILIO_FROM_NUMBER     — your Canadian Twilio number in E.164 (+14035551234)
 #   COUPON_CODE_PREFIX     — e.g. "TOPS" → codes like TOPS-A4F2
 #   DRY_RUN                — "true" to log instead of sending real SMS (for testing)
+
+
+# R2 bucket for owner-uploaded photos (Peter snaps a pizza, uploads via /owner/, lands here)
+# Setup (one-time):
+#   1. wrangler r2 bucket create tops-pizza-photos
+#   2. Enable public access on the bucket in Cloudflare dashboard → R2 → tops-pizza-photos → Settings → Public access
+#   3. Copy the public URL (looks like https://pub-xxxxxxxxxx.r2.dev)
+#   4. Set env var PUBLIC_R2_BASE to that URL in the Pages project
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "tops-pizza-photos"

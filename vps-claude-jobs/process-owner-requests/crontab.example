@@ -1,9 +1,13 @@
 # TOPS Pizza — VPS Claude owner-request processor
-# Run every 15 minutes during business hours (11am-11pm Calgary)
-# Adjust hours for your VPS's timezone (these are MST/MDT examples)
+# Adjust hours for your VPS timezone if it's not UTC.
+#
+# Owners rarely submit changes — every 2 hours is plenty.
+# A request submitted at 8 PM gets handled by 10 PM same evening; one at 9 AM
+# is done by 11 AM. Adjust to */15 or */30 if you start getting frequent requests.
 
-# Every 15 min, 11am - 11pm MST/MDT
-*/15 11-23 * * * cd /opt/tops-pizza-site && ./vps-claude-jobs/process-owner-requests/process.sh >> vps-claude-jobs/process-owner-requests/cron.log 2>&1
+# Every 2 hours during business hours (11am - 11pm Calgary, MST/MDT)
+0 */2 11-23 * * cd /home/agent/tops-pizza-site && ./vps-claude-jobs/process-owner-requests/process.sh >> vps-claude-jobs/process-owner-requests/cron.log 2>&1
 
-# Once daily at midnight, weekly summary text to Steve
-0 0 * * * cd /opt/tops-pizza-site && ./vps-claude-jobs/process-owner-requests/daily-summary.sh >> vps-claude-jobs/process-owner-requests/cron.log 2>&1
+# If you'd rather only process once a day (next-day turnaround is fine for low volume),
+# comment out the line above and uncomment this one:
+# 0 10 * * * cd /home/agent/tops-pizza-site && ./vps-claude-jobs/process-owner-requests/process.sh >> vps-claude-jobs/process-owner-requests/cron.log 2>&1

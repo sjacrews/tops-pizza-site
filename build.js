@@ -10,10 +10,34 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { site, featuredPizzas, featuredNeighborhoods } from "./src/site.config.js";
-import { allNeighborhoods, allPizzas, dailySpecials, menuCategories } from "./src/site.data.js";
+import { allNeighborhoods, allPizzas, dailySpecials, menuCategories, pizzaSizes, pizzaExtras, wingFlavors } from "./src/site.data.js";
+
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, "dist");
+// Auto-link generated/uploaded menu images to items by slug.
+// Drop assets/menu/<slug>.webp (or .png/.jpg), and the corresponding item gets image: "/assets/menu/<file>"
+// (No need to manually paste image paths into site.data.js — this resolves at build time.)
+function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
+const MENU_IMG_DIR = path.join(__dirname, "assets", "menu");
+if (fs.existsSync(MENU_IMG_DIR)) {
+  const files = fs.readdirSync(MENU_IMG_DIR).filter(f => /\.(webp|png|jpe?g)$/i.test(f));
+  const bySlug = {};
+  for (const f of files) bySlug[f.replace(/\.[^.]+$/, "")] = `/assets/menu/${f}`;
+  let linked = 0;
+  for (const cat of menuCategories) {
+    if (!cat.items) continue;
+    for (const item of cat.items) {
+      const slug = slugify(item.name);
+      if (!item.image && bySlug[slug]) {
+        item.image = bySlug[slug];
+        linked++;
+      }
+    }
+  }
+  if (linked) console.log(`  Auto-linked ${linked} menu images by slug`);
+}
+
 
 // ---------- helpers ----------
 // esc: HTML-escape AND convert straight apostrophes to typographic apostrophes
@@ -199,10 +223,12 @@ const nav = () => `<header class="site-header">
     </a>
     <nav class="primary-nav" aria-label="Main">
       <a href="/">Home</a>
-      <a href="/about/">About</a>
+      <a href="/menu/">Menu</a>
+      <a href="/pizza-menu/">Pizzas</a>
       <a href="/sports-bar/">Sports Bar</a>
-      <a href="/thorncliffe/">Delivery</a>
-      <a href="/the-thorncliffe-pizza/">Pizza</a>
+      <a href="/delivery/">Delivery</a>
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
     </nav>
     <a class="order-cta" href="tel:${site.nap.phone}">
       <span class="cta-label">Order:</span> ${esc(site.nap.phoneDisplay)}
@@ -629,11 +655,13 @@ const pizzaPage = (p) => {
       "description": p.description,
       "image": `${site.url}/assets/pizza-${p.slug}.jpg`,
       "menuAddOn": p.ingredients.map(i => ({ "@type": "MenuItem", "name": i })),
-      "offers": p.priceRange ? [
-        { "@type": "Offer", "name": "Medium", "price": p.priceRange.medium, "priceCurrency": "CAD", "availability": "https://schema.org/InStock" },
-        { "@type": "Offer", "name": "Large", "price": p.priceRange.large, "priceCurrency": "CAD", "availability": "https://schema.org/InStock" },
-        { "@type": "Offer", "name": "Extra Large", "price": p.priceRange.xlarge, "priceCurrency": "CAD", "availability": "https://schema.org/InStock" }
-      ] : undefined,
+      "offers": p.prices ? pizzaSizes.map(s => ({
+        "@type": "Offer",
+        "name": `${s.label} (${s.inches})`,
+        "price": p.prices[s.key],
+        "priceCurrency": "CAD",
+        "availability": "https://schema.org/InStock"
+      })) : undefined,
     },
     breadcrumbSchema([
       { name: "Home", url: "/" },
@@ -671,14 +699,22 @@ ${p.image ? `
     ${p.ingredients.map(i => `<li>${esc(i)}</li>`).join("")}
   </ul>
 
-  <h2>Sizes & Crust Options</h2>
+  <h2>Sizes & Pricing</h2>
+  ${p.prices ? `
+  <table class="price-table">
+    <thead><tr><th>Size</th><th>Price (CAD)</th></tr></thead>
+    <tbody>
+      ${pizzaSizes.map(s => `<tr><td>${s.label} ${s.inches}</td><td>$${p.prices[s.key]}</td></tr>`).join("")}
+    </tbody>
+  </table>
+  ` : `<p>Available in Personal (8"), Medium (10"), Large (12"), and Extra Large (14"). <a href="tel:${site.nap.phone}">Call for pricing</a>.</p>`}
+  <h3>Crust Options</h3>
   <ul class="size-list">
-    <li><strong>Medium</strong> — also available with gluten-free crust</li>
-    <li><strong>Large</strong> — half-and-half toppings available</li>
-    <li><strong>Extra Large</strong> — half-and-half toppings available</li>
-    <li><strong>Thin Crust</strong> — Medium, Large, or Extra Large</li>
+    <li><strong>Gluten Free Crust</strong> — Medium only · add $${pizzaExtras.glutenFreeCrust.price}</li>
+    <li><strong>Half & Half toppings</strong> — Large and Extra Large only · add $${pizzaExtras.halfAndHalf.price}</li>
+    <li><strong>Thin Crust</strong> — Medium, Large, or Extra Large · add $${pizzaExtras.thinCrust.price}</li>
   </ul>
-  <p class="text-small"><em>Pricing varies by pizza. <a href="tel:${site.nap.phone}">Call ${esc(site.nap.phoneDisplay)}</a> for the current price on this pie, or see the full menu for all options.</em></p>
+  <p class="text-small"><em>Extra meat or cheese: $${pizzaExtras.extraMeatCheese.prices.personal} / $${pizzaExtras.extraMeatCheese.prices.medium} / $${pizzaExtras.extraMeatCheese.prices.large} / $${pizzaExtras.extraMeatCheese.prices.xlarge} (by size). Extra veg: same.</em></p>
 
   <h2>How To Order</h2>
   <p><strong>Phone (recommended for delivery):</strong> <a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a> — our in-house driver brings it to your door.</p>
@@ -954,24 +990,78 @@ const menuCategoryPage = (cat) => {
 
 <section class="prose wrap">
   ${isPizzas ? `
-  <h2>Our Full Pizza Lineup (${allPizzas.length})</h2>
-  <div class="pizza-grid">
-    ${allPizzas.map(p => `
-      <a class="pizza-card" href="/${p.slug}/">
-        <div class="pizza-card-body">
-          <h3>${esc(p.name)}</h3>
-          <p class="ingredients">${p.ingredients.slice(0, 4).join(", ")}${p.ingredients.length > 4 ? "..." : ""}</p>
-          ${p.neighborhood ? `<p class="neighborhood">Inspired by ${esc(p.neighborhood)}</p>` : ""}
-        </div>
-      </a>
-    `).join("")}
+  <div class="pizza-intro">
+    <p><strong>Hand-made the traditional way, from scratch since 1975.</strong> We make our family secret sauce in-house with only the best selected ingredients and the best quality mozzarella cheese.</p>
   </div>
-  ` : `
-  <h2>What’s in ${esc(cat.name)}</h2>
-  <ul class="ingredients-list">
-    ${(cat.featuredItems || []).map(i => `<li>${esc(i)}</li>`).join("")}
+
+  <h2>Sizes &amp; Crust Options</h2>
+  <ul class="size-list">
+    <li><strong>Gluten Free Crust</strong> — Medium pizzas only · add $${pizzaExtras.glutenFreeCrust.price}</li>
+    <li><strong>Half &amp; Half toppings</strong> — Large &amp; Extra Large only · add $${pizzaExtras.halfAndHalf.price}</li>
+    <li><strong>Thin Crust</strong> — Medium, Large, &amp; Extra Large · add $${pizzaExtras.thinCrust.price}</li>
+    <li><strong>Extra meat or cheese</strong> — $${pizzaExtras.extraMeatCheese.prices.personal} / $${pizzaExtras.extraMeatCheese.prices.medium} / $${pizzaExtras.extraMeatCheese.prices.large} / $${pizzaExtras.extraMeatCheese.prices.xlarge} (by size)</li>
+    <li><strong>Extra vegetable</strong> — same pricing</li>
   </ul>
-  <p class="text-small"><em>Full ${cat.name.toLowerCase()} menu and current pricing — call ${esc(site.nap.phoneDisplay)} or see the full menu.</em></p>
+
+  <h2>Our Full Pizza Lineup (${allPizzas.length})</h2>
+  <p class="text-small"><em>⭐ = Signature TOPS pizza. Click any pizza for ingredients, sizes, and pricing detail.</em></p>
+
+  <table class="menu-table">
+    <thead>
+      <tr>
+        <th>Pizza</th>
+        <th class="ingredients-col">Ingredients</th>
+        <th class="price-col">S (8")</th>
+        <th class="price-col">M (10")</th>
+        <th class="price-col">L (12")</th>
+        <th class="price-col">XL (14")</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${allPizzas.map(p => `
+        <tr>
+          <td class="pizza-name">
+            <a href="/${p.slug}/">${p.signature ? "⭐ " : ""}${esc(p.name)}</a>
+          </td>
+          <td class="ingredients-col">${esc(p.ingredients.join(", "))}</td>
+          <td class="price-col">$${p.prices?.personal || "—"}</td>
+          <td class="price-col">$${p.prices?.medium || "—"}</td>
+          <td class="price-col">$${p.prices?.large || "—"}</td>
+          <td class="price-col">$${p.prices?.xlarge || "—"}</td>
+        </tr>
+      `).join("")}
+    </tbody>
+  </table>
+  ` : `
+  ${cat.note ? `<p class="menu-note">${esc(cat.note)}</p>` : ""}
+  ${(cat.items || []).map(item => `
+    <article class="menu-item${item.signature ? " menu-item-signature" : ""}${item.image ? " menu-item-has-img" : ""}">
+      ${item.image ? `<div class="menu-item-img"><img src="${item.image}" alt="${esc(item.name)} at TOPS Pizza" loading="lazy" /></div>` : ""}
+      <div class="menu-item-body">
+        <header class="menu-item-head">
+          <h3>${item.signature ? "<span class=\"sig-mark\" title=\"Signature TOPS dish\">⭐</span> " : ""}${esc(item.name)}</h3>
+          <span class="menu-item-price">$${esc(item.price)}</span>
+        </header>
+        <p class="menu-item-desc">${esc(item.description)}</p>
+        ${item.addOns && item.addOns.length ? `<ul class="addons">
+          ${item.addOns.map(a => `<li>+ ${esc(a.name)} <span>$${esc(a.price)}</span></li>`).join("")}
+        </ul>` : ""}
+      </div>
+    </article>
+  `).join("")}
+
+  ${cat.slug === "appetizers" ? `
+  <h2 style="margin-top:40px;">Wing Flavors (31)</h2>
+  <p class="text-small">Pick any flavor when you order wings.</p>
+  <h3 style="margin-top:18px;">Saucy</h3>
+  <div class="flavor-pills">
+    ${wingFlavors.saucy.map(f => `<span class="flavor-pill">${esc(f)}</span>`).join("")}
+  </div>
+  <h3 style="margin-top:18px;">Dry Rubs</h3>
+  <div class="flavor-pills">
+    ${wingFlavors.dry.map(f => `<span class="flavor-pill flavor-dry">${esc(f)}</span>`).join("")}
+  </div>
+  ` : ""}
   `}
 
   <h2>Order</h2>
@@ -982,6 +1072,76 @@ const menuCategoryPage = (cat) => {
   return layout({ title, description, canonical, schemas, body });
 };
 
+
+
+// ============================================================
+// PAGE: DELIVERY LANDING (lists all 20 NW Calgary neighborhoods)
+// ============================================================
+const deliveryLandingPage = () => {
+  const title = `Delivery Areas — TOPS Pizza & Sports Bar NW Calgary`;
+  const description = `TOPS Pizza & Sports Bar delivers to ${allNeighborhoods.length}+ NW Calgary neighborhoods including Thorncliffe, Huntington Hills, Highland Park, Beddington Heights, and more. In-house driver, hot delivery.`;
+  const canonical = `${site.url}/delivery/`;
+  const schemas = [
+    restaurantSchema(),
+    {
+      "@type": "Service",
+      "@id": `${canonical}#delivery-area`,
+      "name": "Pizza Delivery — NW Calgary",
+      "description": description,
+      "provider": { "@id": `${site.url}/#restaurant` },
+      "serviceType": "Food delivery",
+      "areaServed": allNeighborhoods.map(n => ({
+        "@type": "Place",
+        "name": `${n.name}, Calgary, AB`,
+      }))
+    },
+    breadcrumbSchema([
+      { name: "Home", url: "/" },
+      { name: "Delivery Areas", url: "/delivery/" }
+    ])
+  ];
+
+  const body = `
+<section class="hero hero-page">
+  <div class="wrap">
+    <p class="eyebrow">${allNeighborhoods.length} NW Calgary Neighborhoods</p>
+    <h1>We Deliver Across NW Calgary</h1>
+    <p class="lede">${site.yearsServing} years of TOPS regulars — from Thorncliffe to Beddington, Banff Trail to Balmoral. Phone orders go to our in-house driver. Apps available too.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="tel:${site.nap.phone}">Call ${esc(site.nap.phoneDisplay)}</a>
+      <a class="btn btn-secondary" href="${site.order.skipTheDishes}" rel="noopener">Order via Skip</a>
+    </div>
+  </div>
+</section>
+
+<section class="prose wrap">
+  <h2>Pick Your Neighborhood</h2>
+  <p>Each neighborhood page has its own delivery details, landmarks we deliver near, and (where applicable) the signature TOPS pizza named after it.</p>
+  <div class="pizza-grid">
+    ${allNeighborhoods.map(nh => `
+      <a class="pizza-card" href="/${nh.slug}/">
+        <div class="pizza-card-body">
+          <h3>${esc(nh.name)}</h3>
+          <p class="ingredients">${esc(nh.crossStreets || "NW Calgary")}</p>
+          ${nh.deliveryEta ? `<p class="neighborhood">${esc(nh.deliveryEta)} delivery</p>` : ""}
+        </div>
+      </a>
+    `).join("")}
+  </div>
+
+  <h2>Our Service Area</h2>
+  <p>Most NW Calgary pockets bounded roughly by Country Hills Blvd to the north, Centre St N to the east, 16 Ave N to the south, and Crowchild Trail to the west — give or take a few neighborhoods on each edge.</p>
+  <div class="map-embed">
+    <iframe src="https://www.google.com/maps/d/embed?mid=1Xf1OXWceyyM18AkDkbfjN11Z5P3PJSc&amp;ehbc=2E312F" loading="lazy" title="TOPS Pizza service area map"></iframe>
+  </div>
+
+  <h2>How To Order</h2>
+  <p><strong>Phone (recommended):</strong> <a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a> — straight to our in-house driver.</p>
+  <p><strong>Apps:</strong> <a href="${site.order.skipTheDishes}" rel="noopener">Skip the Dishes</a>, <a href="${site.order.uberEats}" rel="noopener">Uber Eats</a>, <a href="${site.order.doorDash}" rel="noopener">DoorDash</a>.</p>
+</section>
+`;
+  return layout({ title, description, canonical, schemas, body });
+};
 
 // ============================================================
 // PAGE: REVIEW LANDING (QR-code destination)
@@ -1362,8 +1522,49 @@ const ownerPortalPage = () => {
       <li>Be specific: "change Monday special to 'half price wings 5–8 PM, dine-in only'" beats "update Monday special".</li>
       <li>For menu items: include the full name, ingredients, and what makes it special.</li>
       <li>For hours: list the day(s) and the exact new opening / closing time.</li>
-      <li>For photos: describe what photo you want where, and text Steve the file.</li>
+      <li>For photos: use the photo-upload section below — much easier than texting Steve.</li>
     </ul>
+  </div>
+</section>
+
+<section class="hero hero-page" style="background: var(--black); padding: 50px 0 30px;">
+  <div class="wrap">
+    <p class="eyebrow">Photo Upload</p>
+    <h2 style="color: var(--white); font-size: 32px;">Send Us a Photo</h2>
+    <p class="lede">Just took a photo of a pizza, a meal, the bar, or anything else? Drop it here with a name. Steve gets the file, wires it into the right spot on the site, you don't have to think about it.</p>
+  </div>
+</section>
+
+<section class="prose wrap" style="max-width:680px;">
+  <form id="photo-form" class="feedback-form" method="POST" enctype="multipart/form-data" novalidate>
+
+    <label>
+      <span class="field-label">What is this a photo of?</span>
+      <input type="text" name="item_name" required placeholder="e.g. TOPS Original pizza, Sports bar interior, Caesar salad" />
+    </label>
+
+    <label>
+      <span class="field-label">Photo file <em>(max 15 MB; iPhone HEIC, JPG, or PNG all work)</em></span>
+      <input type="file" name="file" accept="image/*" required style="padding: 8px; background: var(--cream);" />
+    </label>
+
+    <label>
+      <span class="field-label">Notes <em>(optional — anything Steve should know about this photo?)</em></span>
+      <textarea name="notes" rows="3" placeholder="e.g. 'New menu item we're adding', 'Replace the existing Hawaiian photo', 'For the homepage hero'"></textarea>
+    </label>
+
+    <button type="submit" class="btn btn-primary">Upload Photo</button>
+    <p class="form-status" id="photo-status" role="status" aria-live="polite"></p>
+  </form>
+
+  <div style="margin-top:32px; padding:18px 22px; background:var(--cream); border-radius:8px;">
+    <h3 style="margin-bottom:8px; font-size:16px;">What happens after you upload</h3>
+    <ol style="margin-bottom:0; font-size:14px; color:var(--grey-700); padding-left:20px;">
+      <li>The photo lands on the TOPS server (Cloudflare R2)</li>
+      <li>Steve gets a text with the photo name + a link to view it</li>
+      <li>Steve confirms it looks right, then wires it into the matching page on the site</li>
+      <li>Usually same-day or next-day depending on Steve's schedule</li>
+    </ol>
   </div>
 </section>
 
@@ -1442,6 +1643,46 @@ const ownerPortalPage = () => {
           if (voiceStatus.textContent.startsWith('Listening')) voiceStatus.textContent = '';
         };
         recognition.start();
+      });
+    }
+
+    // === Photo upload form ===
+    const photoForm = document.getElementById('photo-form');
+    const photoStatus = document.getElementById('photo-status');
+    if (photoForm) {
+      photoForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fileInput = photoForm.querySelector('input[name="file"]');
+        if (!fileInput.files[0]) {
+          photoStatus.textContent = 'Pick a photo first.';
+          photoStatus.className = 'form-status error';
+          return;
+        }
+        const fileSize = fileInput.files[0].size;
+        if (fileSize > 15 * 1024 * 1024) {
+          photoStatus.textContent = 'File is too big — max 15 MB. Try a smaller photo.';
+          photoStatus.className = 'form-status error';
+          return;
+        }
+        photoStatus.textContent = 'Uploading… (' + Math.round(fileSize / 1024) + ' KB)';
+        photoStatus.className = 'form-status sending';
+        const fd = new FormData(photoForm);
+        try {
+          const res = await fetch('/api/owner-photo', { method: 'POST', body: fd });
+          if (res.ok) {
+            const json = await res.json();
+            photoStatus.textContent = 'Sent! Steve got the notification. Photo #' + (json.photoId || '?') + '. You can upload another or close this page.';
+            photoStatus.className = 'form-status';
+            photoForm.reset();
+          } else {
+            const err = await res.json().catch(() => ({}));
+            photoStatus.textContent = 'Upload failed: ' + (err.error || 'unknown error') + '. Try again or text Steve directly.';
+            photoStatus.className = 'form-status error';
+          }
+        } catch (err) {
+          photoStatus.textContent = 'Network error during upload. Try again.';
+          photoStatus.className = 'form-status error';
+        }
       });
     }
   })();
@@ -1586,14 +1827,63 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 .grid-list li { padding-left: 0; }
 
 /* Inline figure inside prose section */
-.prose-figure { margin: 24px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.12); aspect-ratio: 16/7; }
-.prose-figure img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 42%; }
+.prose-figure { margin: 24px 0; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.12); aspect-ratio: 16/9; }
+.prose-figure img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
 .prose-figure.pizza-feature { aspect-ratio: 16/9; max-width: 760px; margin-left: auto; margin-right: auto; }
 .prose-figure.pizza-feature img { object-position: center; }
 
 /* Ingredients list */
 .ingredients-list { list-style: none; padding-left: 0; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
 .ingredients-list li { background: var(--cream); color: var(--grey-900); padding: 6px 14px; border-radius: 100px; font-size: 14px; font-weight: 600; border: 1px solid var(--grey-100); }
+
+/* Menu item cards (Appetizers, Burgers, Pastas, Classics, etc.) */
+.menu-note { padding: 14px 18px; background: var(--cream); border-left: 4px solid var(--gold); border-radius: 6px; font-size: 14px; color: var(--grey-700); margin-bottom: 28px; font-style: italic; }
+.menu-item { padding: 18px 0; border-bottom: 1px solid var(--grey-100); }
+.menu-item.menu-item-has-img { display: grid; grid-template-columns: 140px 1fr; gap: 18px; align-items: start; }
+.menu-item-img { width: 140px; height: 140px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--cream); }
+.menu-item-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.menu-item-body { min-width: 0; }
+@media (max-width: 560px) {
+  .menu-item.menu-item-has-img { grid-template-columns: 90px 1fr; gap: 12px; }
+  .menu-item-img { width: 90px; height: 90px; }
+}
+.menu-item:last-child { border-bottom: none; }
+.menu-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+.menu-item-head h3 { margin: 0; font-size: 19px; color: var(--black); flex: 1; line-height: 1.25; }
+.menu-item-head .sig-mark { color: var(--gold-dark); }
+.menu-item-price { font-weight: 700; font-size: 17px; color: var(--gold-dark); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.menu-item-desc { font-size: 15px; line-height: 1.55; color: var(--grey-700); margin: 0; }
+.menu-item-signature { background: linear-gradient(180deg, #FFFDF5 0%, transparent 100%); padding-left: 14px; padding-right: 14px; border-radius: 6px; }
+.menu-item-signature .menu-item-head h3 { color: var(--black); }
+.addons { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.addons li { font-size: 13px; color: var(--grey-700); background: var(--cream); padding: 4px 10px; border-radius: 100px; }
+.addons li span { color: var(--gold-dark); font-weight: 600; margin-left: 4px; }
+
+/* Wing flavor pills */
+.flavor-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.flavor-pill { background: var(--cream); color: var(--grey-900); padding: 6px 14px; border-radius: 100px; font-size: 13px; font-weight: 500; border: 1px solid var(--grey-100); }
+.flavor-pill.flavor-dry { background: var(--white); border-color: var(--gold); color: var(--black); }
+
+/* Pizza menu flat-list table (matches original GHL site layout) */
+.pizza-intro { background: var(--cream); padding: 18px 22px; border-radius: 8px; margin-bottom: 28px; }
+.pizza-intro p { margin: 0; font-size: 16px; color: var(--grey-900); }
+.menu-table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px; background: var(--white); }
+.menu-table thead { background: var(--black); color: var(--white); }
+.menu-table th { padding: 12px 10px; text-align: left; font-size: 13px; letter-spacing: 0.5px; }
+.menu-table th.price-col { text-align: right; width: 70px; }
+.menu-table th.ingredients-col { width: 40%; }
+.menu-table td { padding: 12px 10px; border-bottom: 1px solid var(--grey-100); vertical-align: top; }
+.menu-table td.pizza-name { font-weight: 600; min-width: 180px; }
+.menu-table td.pizza-name a { color: var(--black); text-decoration: none; }
+.menu-table td.pizza-name a:hover { color: var(--gold-dark); text-decoration: underline; }
+.menu-table td.ingredients-col { color: var(--grey-700); font-size: 13px; }
+.menu-table td.price-col { text-align: right; font-variant-numeric: tabular-nums; color: var(--grey-900); }
+.menu-table tbody tr:hover { background: var(--cream); }
+@media (max-width: 720px) {
+  .menu-table { font-size: 12px; }
+  .menu-table th, .menu-table td { padding: 8px 6px; }
+  .menu-table th.ingredients-col, .menu-table td.ingredients-col { display: none; }
+}
 
 /* Size list (replaces price table — prices vary per pizza) */
 .size-list { list-style: none; padding: 0; max-width: 480px; margin-bottom: 14px; }
@@ -1719,6 +2009,7 @@ writePage("index.html",         smartify(homepage()));
 writePage("about/index.html",   smartify(about()));
 writePage("contact/index.html", smartify(contactPage()));
 writePage("sports-bar/index.html", smartify(sportsBar()));
+writePage("delivery/index.html",   smartify(deliveryLandingPage()));
 
 // ---------- 20 neighborhood pages ----------
 console.log("\n  Neighborhoods:");
@@ -1761,17 +2052,27 @@ writePage("owner/index.html", smartify(ownerPortalPage()));
 fs.writeFileSync(path.join(OUT, "assets", "style.css"), css);
 fs.writeFileSync(path.join(OUT, "assets", "favicon.svg"), favicon);
 
-// Copy all local image assets to dist/assets/
+// Recursively copy local image assets to dist/assets/ (handles assets/menu/ etc.)
 const ASSETS_SRC = path.join(__dirname, "assets");
-if (fs.existsSync(ASSETS_SRC)) {
-  for (const file of fs.readdirSync(ASSETS_SRC)) {
-    const srcPath = path.join(ASSETS_SRC, file);
-    const destPath = path.join(OUT, "assets", file);
-    if (fs.statSync(srcPath).isFile()) {
+function copyRecursive(src, dest) {
+  let count = 0;
+  if (!fs.existsSync(src)) return 0;
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      count += copyRecursive(srcPath, destPath);
+    } else if (entry.isFile()) {
       fs.copyFileSync(srcPath, destPath);
+      count++;
     }
   }
-  console.log(`  Copied ${fs.readdirSync(ASSETS_SRC).length} local assets to dist/assets/`);
+  return count;
+}
+if (fs.existsSync(ASSETS_SRC)) {
+  const copied = copyRecursive(ASSETS_SRC, path.join(OUT, "assets"));
+  console.log(`  Copied ${copied} local assets (recursive) to dist/assets/`);
 }
 
 // ---------- sitemap.xml — all URLs ----------
@@ -1782,6 +2083,7 @@ const allUrls = [
   `${site.url}/sports-bar/`,
   `${site.url}/menu/`,
   `${site.url}/daily-specials/`,
+  `${site.url}/delivery/`,
   ...allNeighborhoods.map(nh => `${site.url}/${nh.slug}/`),
   ...allPizzas.map(p => `${site.url}/${p.slug}/`),
   ...dailySpecials.map(s => `${site.url}/${s.slug}/`),

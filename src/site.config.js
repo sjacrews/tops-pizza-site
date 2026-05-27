@@ -71,8 +71,11 @@ export const site = {
   // These take priority over the hotlinked GHL CDN urls below.
   localImages: {
     heroHome: "/assets/tops_pizza_bar.webp",          // bar with Stanley Cup Playoffs on TVs
-    heroSportsBar: "/assets/tops_pizza_steak_bar.webp", // steak + sports TVs
-    aboutInline: "/assets/tops_pizza_beer_glass_bar.webp", // beer + bar lounge
+    heroSportsBar: "/assets/tops_sports_bar_flames.webp", // bar with Calgary Flames banner + wall of TVs (May 2026)
+    heroSportsBarAlt: "/assets/tops_pizza_steak_bar.webp", // alternate: steak + TVs
+    barAtmosphere: "/assets/tops_sports_bar_baseball.webp", // bar full of TVs with baseball game
+    diningStampeders: "/assets/tops_sports_bar_stampeders.webp", // dining area with Stampeders on TV
+    aboutInline: "/assets/tops_sports_bar_stampeders.webp", // dining area + Stampeders on TV + Flames banner (May 2026, swapped from beer-glass)
     pizzaThorncliffe: "/assets/tops_pizza_the_thorncliffe.webp", // real product photo!
     pizzaMeatLovers: "/assets/tops_pizza_beer_meat_lovers.webp",
     caesarSalad: "/assets/tops_pizza_caesar_salad.webp",
