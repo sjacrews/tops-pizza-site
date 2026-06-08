@@ -15,6 +15,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."   # repo root: tops-pizza-site/
 
+# Credentials for unattended (cron) runs — cron has no shell env.
+[ -f "$HOME/.secrets/twilio.env" ] && . "$HOME/.secrets/twilio.env"
+[ -f "$HOME/.secrets/cloudflare.env" ] && . "$HOME/.secrets/cloudflare.env"
+export TWILIO_FROM_NUMBER="${TWILIO_FROM_NUMBER:-+15878702722}"
+export STEVE_NOTIFY_NUMBER="${STEVE_NOTIFY_NUMBER:-+14038702669}"
+
 LOG="vps-claude-jobs/process-owner-requests/process.log"
 echo "===== $(date -Iseconds) starting run =====" | tee -a "$LOG"
 
@@ -51,9 +57,17 @@ echo "$REQUESTS_JSON" | jq -c '.[0].results[]' | while read -r REQUEST; do
   echo "" >> "$PROMPT_FILE"
   echo "$REQUEST" | jq -r '"- Submitted: \(.created_at)\n- From: \(.submitted_by)\n- Category: \(.category)\n- Urgency: \(.urgency)\n\n**The request:**\n\n\(.request_text)"' >> "$PROMPT_FILE"
 
-  # Invoke Claude headlessly — let it read the prompt and act
-  # --dangerously-skip-permissions because this is an automated unattended context
-  claude --dangerously-skip-permissions --print < "$PROMPT_FILE" 2>&1 | tee -a "$LOG"
+  # Invoke Claude headlessly — let it read the prompt and act.
+  # PLUGIN-SAFE flags are mandatory here: a plain `claude` in cron loads the Telegram
+  # poller plugin and KILLS Steve's live poller. --settings disables plugins,
+  # --strict-mcp-config + cron-mcp.json bounds MCP, --allowedTools bounds capability,
+  # and timeout caps a runaway run.
+  timeout 1800 claude --print \
+    --permission-mode bypassPermissions \
+    --strict-mcp-config --mcp-config "$HOME/.claude/cron-mcp.json" \
+    --settings '{"enabledPlugins":{}}' \
+    --allowedTools "Bash,Read,Write,Edit,Glob,Grep" \
+    < "$PROMPT_FILE" 2>&1 | tee -a "$LOG"
 
   rm -f "$PROMPT_FILE"
   echo "← Done with request #$ID" | tee -a "$LOG"
