@@ -177,6 +177,8 @@ const layout = ({ title, description, canonical, ogImage, schemas, body }) => `<
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-BRBS7BTYV0"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-BRBS7BTYV0');</script>
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
