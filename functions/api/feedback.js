@@ -93,6 +93,24 @@ export async function onRequestPost({ request, env }) {
     console.warn("DB binding not configured. Submission:", { type, name: data.name, email, phone });
   }
 
+  // Record the coupon so staff can redeem it later at /redeem (tracked, one-time use)
+  if (couponCode && env.DB) {
+    try {
+      await env.DB.prepare(
+        `INSERT INTO coupons (code, name, phone, email, community, amount) VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(
+        couponCode,
+        (data.name || "").trim() || null,
+        phone,
+        email,
+        (data.community || data.city || "").trim() || null,
+        "$5",
+      ).run();
+    } catch (err) {
+      console.error("coupon insert failed:", err);
+    }
+  }
+
   // Send the immediate welcome SMS (only for reviewer-thanks signups with SMS opt-in)
   if (type === "reviewer-thanks" && smsOptin && phone) {
     const smsBody = buildWelcomeSms(data.name, couponCode);
@@ -152,7 +170,7 @@ function randomCode(len = 4) {
 function buildWelcomeSms(name, coupon) {
   const first = (name || "").split(" ")[0];
   const greeting = first ? `Hi ${first}, ` : "";
-  return `${greeting}thanks for visiting TOPS Pizza & Sports Bar! Your thank-you coupon: ${coupon} — 15% off your next visit. Show on phone. Reply STOP to opt out.`;
+  return `${greeting}thanks for visiting TOPS Pizza & Sports Bar! Your coupon: ${coupon} — $5 off a $25+ order. Not valid on wing nights or with other offers. Show this text in-store. Reply STOP to opt out.`;
 }
 
 // Send SMS via Twilio HTTP API (no SDK needed in CF Workers)
