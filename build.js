@@ -1377,24 +1377,31 @@ const reviewBonusPage = () => {
     const form = document.getElementById('bonus-form');
     const status = document.getElementById('bonus-status');
     const submit = document.getElementById('bonus-submit');
-    form.addEventListener('submit', async (e) => {
+    const GOOGLE_URL = '${site.nap.googleReviewUrl}';
+    form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (form.company.value) return;
-      status.textContent = 'Sending…';
+      status.textContent = 'Opening Google…';
       status.className = 'form-status sending';
       submit.disabled = true;
       const data = Object.fromEntries(new FormData(form));
+      // Open Google NOW, synchronously, while the click's user activation is still
+      // valid. window.open() after an "await" gets popup-blocked by browsers, so the
+      // review tab never opened — that was the bug.
+      const gtab = window.open(GOOGLE_URL, '_blank', 'noopener');
+      // Fire the coupon submit; keepalive lets it finish even as we navigate away.
       try {
-        await fetch('/api/feedback', {
+        fetch('/api/feedback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify(data),
+          keepalive: true
         });
       } catch (err) {
-        // Even on failure, open Google — user already came here to review.
-        // The form is opt-in, so a failed submit shouldn't block the flow.
+        // Opt-in form: a failed submit shouldn't block the review flow.
       }
-      window.open('${site.nap.googleReviewUrl}', '_blank', 'noopener');
+      // If the popup was still blocked, send THIS tab to Google so the review happens.
+      if (!gtab) { window.location = GOOGLE_URL; return; }
       window.location = '/review/thanks/?from=bonus';
     });
   })();
