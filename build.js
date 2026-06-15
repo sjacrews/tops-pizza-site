@@ -1173,17 +1173,17 @@ const reviewLandingPage = () => {
 
 <section class="review-funnel wrap">
   <div class="review-paths">
-    <a class="path-card path-google" href="/review/bonus/">
+    <a class="path-card path-google" href="${site.nap.googleReviewUrl}" target="_blank" rel="noopener">
       <div class="path-icon" aria-hidden="true">⭐</div>
-      <h2>Leave a Google Review</h2>
+      <h2>Write a 5-Star Google Review</h2>
       <p>Takes 30 seconds. Helps new customers find us in NW Calgary search.</p>
       <p class="tip">💡 <em>Tip — reviews with a photo of your meal stand out the most.</em></p>
-      <span class="path-cta">Continue →</span>
+      <span class="path-cta">Write My Review →</span>
     </a>
 
     <a class="path-card path-feedback" href="/review/feedback/">
       <div class="path-icon" aria-hidden="true">💬</div>
-      <h2>Send Private Feedback</h2>
+      <h2>Give Private Feedback</h2>
       <p>Tell Jim and the family directly — what worked, what didn’t, what we can do better.</p>
       <p class="tip">📩 <em>Goes straight to the owners, not public.</em></p>
       <span class="path-cta">Open Form →</span>
@@ -1314,7 +1314,30 @@ const reviewFeedbackPage = () => {
 // Soft-tied "thanks for visiting" coupon — frames it as gratitude
 // for the visit, not payment for the review. Email is optional.
 // ============================================================
+// NOTE (2026-06-15): the thank-you COUPON offer is retired (owner not offering a
+// discount yet — pending price/terms review with their accountant). This page is kept
+// only as a redirect so any printed/cached /review/bonus/ links land on the new
+// two-option review page (5-star Google review OR private feedback).
 const reviewBonusPage = () => {
+  const title = `Leave a Review — TOPS Pizza & Sports Bar`;
+  const description = `Leave a 5-star Google review or send private feedback to TOPS Pizza & Sports Bar.`;
+  const canonical = `${site.url}/review/`;
+  const schemas = [];
+
+  const body = `
+<section class="hero hero-page">
+  <div class="wrap">
+    <p class="eyebrow">One sec…</p>
+    <h1>Taking you to our review page</h1>
+    <p class="lede">If you’re not redirected, <a class="text-link" href="/review/">tap here</a>.</p>
+  </div>
+</section>
+<script>window.location.replace('/review/');</script>
+`;
+  return layout({ title, description, canonical, schemas, body });
+};
+
+const _reviewBonusPage_RETIRED = () => {
   const title = `Thanks for Visiting — TOPS Pizza & Sports Bar`;
   const description = `Quick stop on the way to Google — drop your email for a thank-you coupon, then head over to leave your review.`;
   const canonical = `${site.url}/review/bonus/`;
@@ -1438,28 +1461,10 @@ const reviewThanksPage = () => {
 <section class="prose wrap">
   <div id="from-feedback">
     <h2>One More Thing</h2>
-    <p>If you’re also up for a public Google review, that’s the single biggest favor you can do for a 50-year family business. New customers really do read them before deciding where to order.</p>
-    <p><a class="btn btn-primary" href="${site.nap.googleReviewUrl}" target="_blank" rel="noopener">Leave a Google Review</a></p>
-  </div>
-
-  <div id="from-bonus" hidden>
-    <h2>Your Coupon Is on the Way</h2>
-    <p>Check your inbox in the next few minutes (and your spam folder if it isn’t there). We just opened the Google review page in a new tab — when you’re back, we’ll be here.</p>
-    <p><a class="text-link" href="/">← Back to TOPS Pizza home</a></p>
+    <p>If you’re also up for a public 5-star Google review, that’s the single biggest favor you can do for a 50-year family business. New customers really do read them before deciding where to order.</p>
+    <p><a class="btn btn-primary" href="${site.nap.googleReviewUrl}" target="_blank" rel="noopener">Write a 5-Star Google Review</a></p>
   </div>
 </section>
-
-<script>
-  (function(){
-    if (window.location.search.includes('from=bonus')) {
-      document.getElementById('thanks-eyebrow').textContent = 'Thanks for the Review';
-      document.getElementById('thanks-heading').textContent = 'Coupon Sent.';
-      document.getElementById('thanks-lede').textContent = 'Thanks for taking the time. We just opened Google in a new tab — leave your review there, and your coupon is already on its way to your inbox.';
-      document.getElementById('from-feedback').hidden = true;
-      document.getElementById('from-bonus').hidden = false;
-    }
-  })();
-</script>
 `;
   return layout({ title, description, canonical, schemas, body });
 };
