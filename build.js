@@ -1,5 +1,5 @@
 // ============================================================
-// TOPS Pizza — static site generator (proof-of-concept)
+// TOPS Pizza, static site generator (proof-of-concept)
 // ----------------------------------------------------------------
 // Run:  node build.js
 // Output: ./dist/ (5 pages + shared assets)
@@ -17,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(__dirname, "dist");
 // Auto-link generated/uploaded menu images to items by slug.
 // Drop assets/menu/<slug>.webp (or .png/.jpg), and the corresponding item gets image: "/assets/menu/<file>"
-// (No need to manually paste image paths into site.data.js — this resolves at build time.)
+// (No need to manually paste image paths into site.data.js, this resolves at build time.)
 function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
 const MENU_IMG_DIR = path.join(__dirname, "assets", "menu");
 if (fs.existsSync(MENU_IMG_DIR)) {
@@ -51,7 +51,7 @@ const esc = (s) => String(s)
 // img(): build a GHL-CDN URL for a hosted image
 const img = (originalUrl) => `${site.images?.cdnBase || 'https://images.leadconnectorhq.com/image/f_webp/q_80/r_1200/u_'}${originalUrl}`;
 
-// smartify: convert any remaining straight ' to typographic ’, but ONLY in text content —
+// smartify: convert any remaining straight ' to typographic ’, but ONLY in text content , 
 // skip everything inside <script> and <style> blocks (those need straight quotes for JS/CSS).
 const smartify = (html) => {
   const parts = [];
@@ -59,8 +59,8 @@ const smartify = (html) => {
   const re = /<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi;
   let m;
   while ((m = re.exec(html)) !== null) {
-    parts.push(html.slice(i, m.index).replace(/'/g, "’")); // text before block — smartify
-    parts.push(m[0]);                                       // the block itself — leave alone
+    parts.push(html.slice(i, m.index).replace(/'/g, "’")); // text before block, smartify
+    parts.push(m[0]);                                       // the block itself, leave alone
     i = m.index + m[0].length;
   }
   parts.push(html.slice(i).replace(/'/g, "’"));            // trailing text
@@ -87,7 +87,7 @@ const humanHours = (h) => {
     const mmStr = mm === 0 ? "" : `:${String(mm).padStart(2, "0")}`;
     return `${h12}${mmStr} ${period}`;
   };
-  return `${fmt(h.opens)} – ${fmt(h.closes)}`;
+  return `${fmt(h.opens)} to ${fmt(h.closes)}`;
 };
 
 // ---------- shared schema fragments ----------
@@ -172,7 +172,7 @@ const jsonLd = (schemas) => {
 };
 
 // ---------- shared layout ----------
-const layout = ({ title, description, canonical, ogImage, schemas, body }) => `<!doctype html>
+const layout = ({ title, description, canonical, ogImage, schemas, body, noindex }) => `<!doctype html>
 <html lang="en-CA">
 <head>
 <meta charset="utf-8" />
@@ -180,9 +180,10 @@ const layout = ({ title, description, canonical, ogImage, schemas, body }) => `<
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BRBS7BTYV0"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-BRBS7BTYV0');</script>
 <title>${esc(title)}</title>
-<meta name="description" content="${esc(description)}" />
+${noindex ? `<meta name="robots" content="noindex,follow" />\n` : ""}<meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+<link rel="apple-touch-icon" href="/assets/favicon.svg" />
 
 <!-- Open Graph -->
 <meta property="og:type" content="restaurant" />
@@ -191,6 +192,7 @@ const layout = ({ title, description, canonical, ogImage, schemas, body }) => `<
 <meta property="og:description" content="${esc(description)}" />
 <meta property="og:url" content="${esc(canonical)}" />
 <meta property="og:image" content="${esc(ogImage || `${site.url}/assets/og-image.png`)}" />
+<meta property="og:image:alt" content="${esc(`${site.name} in ${site.nap.locality}, ${site.nap.region}`)}" />
 <meta property="og:locale" content="en_CA" />
 <meta property="business:contact_data:street_address" content="${esc(site.nap.streetAddress)}" />
 <meta property="business:contact_data:locality" content="${esc(site.nap.locality)}" />
@@ -203,6 +205,7 @@ const layout = ({ title, description, canonical, ogImage, schemas, body }) => `<
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${esc(title)}" />
 <meta name="twitter:description" content="${esc(description)}" />
+<meta name="twitter:image" content="${esc(ogImage || `${site.url}/assets/og-image.png`)}" />
 
 <!-- Schema.org JSON-LD -->
 ${jsonLd(schemas)}
@@ -220,7 +223,7 @@ ${footer()}
 
 const nav = () => `<header class="site-header">
   <div class="wrap nav">
-    <a class="logo" href="/" aria-label="${esc(site.name)} — home">
+    <a class="logo" href="/" aria-label="${esc(site.name)}, home">
       <img src="${site.brand.logoUrl}" alt="${esc(site.name)} logo" width="120" height="60" loading="eager" />
     </a>
     <nav class="primary-nav" aria-label="Main">
@@ -254,7 +257,7 @@ const footer = () => `<footer class="site-footer">
     </div>
     <div>
       <h3>Order</h3>
-      <p><a href="tel:${site.nap.phone}">Call us — ${esc(site.nap.phoneDisplay)}</a></p>
+      <p><a href="tel:${site.nap.phone}">Call us, ${esc(site.nap.phoneDisplay)}</a></p>
       <p>Or order via:</p>
       <ul class="thirdparty">
         <li><a href="${site.order.skipTheDishes}" rel="noopener">Skip the Dishes</a></li>
@@ -275,6 +278,81 @@ const footer = () => `<footer class="site-footer">
   </div>
 </footer>`;
 
+// ---------- homepage FAQ (visible section + FAQPage schema) ----------
+// Plain-text hours line (no dashes) built from the real site.hours data.
+const faqHoursLine = (() => {
+  const fmt = (t) => {
+    let [hh, mm] = t.split(":").map(Number);
+    if (hh >= 24) hh -= 24;
+    const period = hh >= 12 ? "PM" : "AM";
+    const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
+    const mmStr = mm === 0 ? "" : `:${String(mm).padStart(2, "0")}`;
+    return `${h12}${mmStr} ${period}`;
+  };
+  return site.hours
+    .map((h) => `${h.dayOfWeek} ${fmt(h.opens)} to ${fmt(h.closes)}`)
+    .join("; ");
+})();
+
+// Every answer below is built strictly from facts already in src/site.config.js.
+const homeFaqs = [
+  {
+    q: "How do I order from TOPS Pizza?",
+    a: `You can order TOPS Pizza by calling us at ${site.nap.phoneDisplay}, or online through SkipTheDishes, Uber Eats, or DoorDash. We offer dine-in, takeout, and delivery.`,
+  },
+  {
+    q: "Do you deliver?",
+    a: `Yes. We deliver across NW Calgary, including ${site.neighborhoods.length}+ neighborhoods such as ${site.neighborhoods.slice(0, 6).join(", ")} and more. You can order delivery by phone at ${site.nap.phoneDisplay} or through SkipTheDishes, Uber Eats, or DoorDash.`,
+  },
+  {
+    q: "What are your hours?",
+    a: `Our hours are: ${faqHoursLine}.`,
+  },
+  {
+    q: "Where are you located?",
+    a: `We are located at ${site.nap.streetAddress}, ${site.nap.locality}, ${site.nap.region} ${site.nap.postalCode}, in the ${site.nap.neighborhood} neighborhood of NW Calgary.`,
+  },
+  {
+    q: "Do you have a sports bar?",
+    a: `Yes. TOPS Pizza & Sports Bar has ${site.sportsBar.tvCount}+ TVs showing ${site.sportsBar.leagues.join(", ")}, plus a full bar, pool table, jukebox, and VLTs in the lounge.`,
+  },
+  {
+    q: "What kind of food do you serve?",
+    a: `We serve ${site.servesCuisine.join(", ")}, including our signature neighborhood pizzas. Family recipe since ${site.yearFounded}.`,
+  },
+  {
+    q: "Can I dine in or get takeout?",
+    a: `Yes. You can dine in at our ${site.nap.neighborhood} location, order takeout, or have your food delivered. Call us at ${site.nap.phoneDisplay} to place an order.`,
+  },
+];
+
+const faqPageSchema = (faqs) => ({
+  "@type": "FAQPage",
+  "@id": `${site.url}/#faq`,
+  "mainEntity": faqs.map((f) => ({
+    "@type": "Question",
+    "name": f.q,
+    "acceptedAnswer": { "@type": "Answer", "text": f.a },
+  })),
+});
+
+const faqSection = (faqs) => `
+<section class="story wrap" id="faq">
+  <h2>Frequently Asked Questions</h2>
+  <div class="faq-list">
+    ${faqs
+      .map(
+        (f) => `
+    <div class="faq-item">
+      <h3>${esc(f.q)}</h3>
+      <p>${esc(f.a)}</p>
+    </div>`
+      )
+      .join("")}
+  </div>
+</section>
+`;
+
 // ============================================================
 // PAGE: HOMEPAGE
 // ============================================================
@@ -285,6 +363,7 @@ const homepage = () => {
   const schemas = [
     websiteSchema(),
     restaurantSchema(),
+    faqPageSchema(homeFaqs),
     breadcrumbSchema([{ name: "Home", url: "/" }])
   ];
 
@@ -295,7 +374,7 @@ const homepage = () => {
     <h1>Hot Pizza. Cold Beer. Every Game.</h1>
     <p class="lede">${esc(site.tagline)} Family recipe, ${site.yearsServing} years deep, ${site.sportsBar.tvCount}+ TVs lit up every night in Thorncliffe.</p>
     <div class="hero-cta">
-      <a class="btn btn-primary" href="tel:${site.nap.phone}">Call to Order — ${esc(site.nap.phoneDisplay)}</a>
+      <a class="btn btn-primary" href="tel:${site.nap.phone}">Call to Order, ${esc(site.nap.phoneDisplay)}</a>
       <a class="btn btn-secondary" href="/thorncliffe/">View Delivery Areas</a>
     </div>
   </div>
@@ -342,7 +421,7 @@ const homepage = () => {
 <section class="story wrap">
   <h2>The Recipe Hasn’t Changed Since ${site.yearFounded}</h2>
   <p>${esc(site.founder.story)}</p>
-  <p>Today, every pizza that leaves our oven is made by hand, from scratch — with a dough recipe ${esc(site.founder.name)} brought from Greece, the same in-house sauce, real Alberta-made mozzarella, and the same standard ${site.yearsServing} years on.</p>
+  <p>Today, every pizza that leaves our oven is made by hand, from scratch, with a dough recipe ${esc(site.founder.name)} brought from Greece, the same in-house sauce, real Alberta-made mozzarella, and the same standard ${site.yearsServing} years on.</p>
   <p><a class="text-link" href="/about/">Read the TOPS story →</a></p>
 </section>
 
@@ -373,9 +452,9 @@ const homepage = () => {
     </blockquote>
   </div>
 </section>
-
+${faqSection(homeFaqs)}
 <section class="visit wrap">
-  <h2>Our Delivery Zone — All of NW Calgary</h2>
+  <h2>Our Delivery Zone, All of NW Calgary</h2>
   <p>${esc(site.nap.streetAddress)}, ${esc(site.nap.locality)}, ${esc(site.nap.region)} ${esc(site.nap.postalCode)}</p>
   <p>Walk-in, call in, or order delivery to any of the ${site.neighborhoods.length}+ NW Calgary neighborhoods inside the yellow zone below.</p>
   <div class="map-embed">
@@ -392,7 +471,7 @@ const homepage = () => {
 // PAGE: ABOUT
 // ============================================================
 const about = () => {
-  const title = `About TOPS Pizza & Sports Bar — ${site.yearsServing} Years in NW Calgary`;
+  const title = `About TOPS Pizza & Sports Bar, ${site.yearsServing} Years in NW Calgary`;
   const description = `Family-owned since ${site.yearFounded}. The TOPS Pizza recipe was passed down from ${site.founder.name}'s mother and hasn't changed in ${site.yearsServing} years. Our story.`;
   const canonical = `${site.url}/about/`;
 
@@ -435,12 +514,12 @@ const about = () => {
   </figure>
 
   <h2>From Greece to NW Calgary</h2>
-  <p>After immigrating to Canada, ${esc(site.founder.name)} and his wife ${esc(site.founder.wife)} set out to build something special — a neighborhood place that served the food they grew up on, made the way their families made it. New country, new language, a lot of long days and late nights. They built it anyway.</p>
+  <p>After immigrating to Canada, ${esc(site.founder.name)} and his wife ${esc(site.founder.wife)} set out to build something special, a neighborhood place that served the food they grew up on, made the way their families made it. New country, new language, a lot of long days and late nights. They built it anyway.</p>
   <p>Today their son ${esc(site.founder.son)} plays an active role in the kitchen and the floor, carrying the family legacy forward into a third generation of Thorncliffe regulars.</p>
 
   <h2>The Family Recipe</h2>
   <p>The dough is hand-tossed from a recipe ${esc(site.founder.name)} brought from Greece. The sauce is made in-house every morning. The cheese is Alberta-made mozzarella. There’s no shortcut to the way TOPS tasted in ${site.yearFounded}, and we haven’t looked for one.</p>
-  <p>It’s why regulars from Huntington Hills, Thorncliffe, Highland Park, and twenty other NW communities have kept coming back across three generations. The TOPS Original — pepperoni, mushrooms, bacon, green peppers, olives, and shrimp — is the same pizza their grandparents ordered.</p>
+  <p>It’s why regulars from Huntington Hills, Thorncliffe, Highland Park, and twenty other NW communities have kept coming back across three generations. The TOPS Original, pepperoni, mushrooms, bacon, green peppers, olives, and shrimp, is the same pizza their grandparents ordered.</p>
 
   <h2>More Than Pizza</h2>
   <p>Over the decades, TOPS grew into the neighborhood’s sports bar too. ${site.sportsBar.tvCount}+ TVs cover every Flames game, every CFL Saturday, every UFC pay-per-view, every NHL playoff push. A full bar, cold beer, daily specials, a pool table, a jukebox, VLTs in the lounge.</p>
@@ -448,11 +527,11 @@ const about = () => {
   <h2>The Three Pizzas Named For Our Neighborhoods</h2>
   <p>${site.yearsServing} years of feeding NW Calgary earned three of our pizzas the right to wear neighborhood names:</p>
   <ul>
-    ${featuredPizzas.map(p => `<li><strong><a href="/${p.slug}/">${esc(p.name)}</a></strong> — ${esc(p.description)}</li>`).join("")}
+    ${featuredPizzas.map(p => `<li><strong><a href="/${p.slug}/">${esc(p.name)}</a></strong>, ${esc(p.description)}</li>`).join("")}
   </ul>
 
   <h2>From Our Family to Yours</h2>
-  <p>We’re at ${esc(site.nap.streetAddress)} in Thorncliffe. Dine in, take out, call in for delivery — or catch the game from a booth with a pizza and a pint. The kitchen and the bar are open from ${site.hours[0].opens.split(":")[0]} AM past midnight, seven days a week.</p>
+  <p>We’re at ${esc(site.nap.streetAddress)} in Thorncliffe. Dine in, take out, call in for delivery, or catch the game from a booth with a pizza and a pint. The kitchen and the bar are open from ${site.hours[0].opens.split(":")[0]} AM past midnight, seven days a week.</p>
   <p><em>You’re not just a customer here. You’re part of the family.</em></p>
   <p><a class="btn btn-primary" href="tel:${site.nap.phone}">Call ${esc(site.nap.phoneDisplay)}</a></p>
 </section>
@@ -498,8 +577,8 @@ const sportsBar = () => {
 <section class="features wrap">
   <div class="feature">
     <span class="feature-icon">🏒</span>
-    <h3>NHL — Flames, Oilers &amp; League-Wide</h3>
-    <p>Every Flames home and away game. Playoff push, regular season, alumni nights — we're locked in.</p>
+    <h3>NHL, Flames, Oilers &amp; League-Wide</h3>
+    <p>Every Flames home and away game. Playoff push, regular season, alumni nights, we're locked in.</p>
   </div>
   <div class="feature">
     <span class="feature-icon">🏈</span>
@@ -509,25 +588,25 @@ const sportsBar = () => {
   <div class="feature">
     <span class="feature-icon">🥊</span>
     <h3>UFC Pay-Per-Views</h3>
-    <p>Every UFC main event live on the big screens. Get here early — the bar fills up fast on fight nights.</p>
+    <p>Every UFC main event live on the big screens. Get here early, the bar fills up fast on fight nights.</p>
   </div>
 </section>
 
 <section class="prose wrap">
   <h2>What Makes TOPS the NW Calgary Sports Bar</h2>
-  <p>It's not just the screens — though there are ${site.sportsBar.tvCount}+ of them. It's that you can actually hear the call from any seat, your wings come out hot, and your pint isn't $14. We've been doing this for ${site.yearsServing} years. We know what a sports bar should feel like.</p>
+  <p>It's not just the screens, though there are ${site.sportsBar.tvCount}+ of them. It's that you can actually hear the call from any seat, your wings come out hot, and your pint isn't $14. We've been doing this for ${site.yearsServing} years. We know what a sports bar should feel like.</p>
 
   <h3>What's Here</h3>
   <ul>
     ${site.sportsBar.amenities.map(a => `<li>${esc(a)}</li>`).join("")}
     <li>${site.sportsBar.tvCount}+ HDTVs across the dining room and lounge</li>
     <li>Sound on for the main game; closed-caption on the rest</li>
-    <li>Family-friendly dining room — bring the kids until 9pm</li>
+    <li>Family-friendly dining room, bring the kids until 9pm</li>
     <li>Plenty of parking, 4 St NW at 56 Ave</li>
   </ul>
 
   <h3>Daily Pub Perks</h3>
-  <p>Pub-only specials run all week — wings, pizza, drinks, happy hour. Some are too good to take home. Come in, grab a booth, and find out which night is yours.</p>
+  <p>Pub-only specials run all week, wings, pizza, drinks, happy hour. Some are too good to take home. Come in, grab a booth, and find out which night is yours.</p>
 
   <h3>Big Game Coming Up?</h3>
   <p>Book a table or just walk in. For groups of 10+, call ahead and we'll save you the booth with the best sightline. <a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a>.</p>
@@ -538,11 +617,11 @@ const sportsBar = () => {
 };
 
 // ============================================================
-// PAGE: NEIGHBORHOOD (generic — emits a page for each of the 20 neighborhoods)
+// PAGE: NEIGHBORHOOD (generic, emits a page for each of the 20 neighborhoods)
 // ============================================================
 const neighborhoodPage = (nh) => {
   const pizza = nh.neighborhoodPizza ? allPizzas.find(p => p.slug === nh.neighborhoodPizza) : null;
-  const title = `Pizza Delivery in ${nh.name}, Calgary — TOPS Pizza & Sports Bar`;
+  const title = `Pizza Delivery in ${nh.name}, Calgary, TOPS Pizza & Sports Bar`;
   const description = `Hot pizza & pub favourites delivered fast to ${nh.name}, NW Calgary. ${site.yearsServing} years at ${site.nap.streetAddress}. Call ${site.nap.phoneDisplay}.`;
   const canonical = `${site.url}/${nh.slug}/`;
 
@@ -571,8 +650,8 @@ const neighborhoodPage = (nh) => {
   const body = `
 <section class="hero hero-page">
   <div class="wrap">
-    <p class="eyebrow">${esc(nh.deliveryEta || "20–30 min")} delivery</p>
-    <h1>Pizza Delivery in ${esc(nh.name)} — From Your Neighborhood Pizzeria</h1>
+    <p class="eyebrow">${esc(nh.deliveryEta || "20 to 30 min")} delivery</p>
+    <h1>Pizza Delivery in ${esc(nh.name)}, From Your Neighborhood Pizzeria</h1>
     <p class="lede">${esc(nh.blurb)}</p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="tel:${site.nap.phone}">Call ${esc(site.nap.phoneDisplay)}</a>
@@ -583,7 +662,7 @@ const neighborhoodPage = (nh) => {
 
 <section class="prose wrap">
   <h2>Why ${esc(nh.name)} Orders TOPS</h2>
-  <p>${esc(nh.uniqueAngle || `We’re at ${nh.crossStreets || site.nap.streetAddress} — close enough that your pizza arrives hot, not lukewarm. Phone orders come from the same kitchen as the dine-in pies. Our in-house driver knows ${nh.name} the way only a ${site.yearsServing}-year neighborhood pizzeria can.`)}</p>
+  <p>${esc(nh.uniqueAngle || `We’re at ${nh.crossStreets || site.nap.streetAddress}, close enough that your pizza arrives hot, not lukewarm. Phone orders come from the same kitchen as the dine-in pies. Our in-house driver knows ${nh.name} the way only a ${site.yearsServing}-year neighborhood pizzeria can.`)}</p>
 
   ${nh.landmarks && nh.landmarks.length ? `
   <h3>Local Landmarks We Deliver Near</h3>
@@ -598,7 +677,7 @@ const neighborhoodPage = (nh) => {
   <h2>${esc(nh.name)} Has Its Own Pizza</h2>
   <p>${esc(pizza.description)}</p>
   <ul>
-    <li><strong>${esc(pizza.name)}</strong> — ${pizza.ingredients.join(", ")}</li>
+    <li><strong>${esc(pizza.name)}</strong>, ${pizza.ingredients.join(", ")}</li>
   </ul>
   <p><a class="text-link" href="/${pizza.slug}/">See ${esc(pizza.name)} →</a></p>
   ` : `
@@ -609,7 +688,7 @@ const neighborhoodPage = (nh) => {
   <h2>What We Deliver</h2>
   <ul class="grid-list">
     <li>🍕 Signature & classic pizzas (hand-tossed, gluten-free crust available on mediums)</li>
-    <li>🍗 Wings — 31 flavours, baked or breaded</li>
+    <li>🍗 Wings, 31 flavours, baked or breaded</li>
     <li>🍔 Burgers, sandwiches & donairs</li>
     <li>🍝 Pastas & TOPS Classics</li>
     <li>🥗 Salads & soups</li>
@@ -617,7 +696,7 @@ const neighborhoodPage = (nh) => {
   </ul>
 
   <h2>Phone Order Direct (Best for In-House Delivery)</h2>
-  <p>Calling us directly puts your order in front of our in-house driver. We answer the phone — no app, no menu confusion. <a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a>.</p>
+  <p>Calling us directly puts your order in front of our in-house driver. We answer the phone, no app, no menu confusion. <a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a>.</p>
 
   <h2>Or Order Via Skip, Uber Eats, or DoorDash</h2>
   <p>We’re on all three. Pricing is the same on-site as in-store; delivery times depend on the courier.</p>
@@ -631,7 +710,7 @@ const neighborhoodPage = (nh) => {
   <ul class="hours">
     ${site.hours.map(h => `<li><span>${esc(h.dayOfWeek)}</span><span>${esc(humanHours(h))}</span></li>`).join("")}
   </ul>
-  <p class="text-small"><em>Kitchen sometimes closes a few minutes before posted close — call to confirm if it’s late.</em></p>
+  <p class="text-small"><em>Kitchen sometimes closes a few minutes before posted close, call to confirm if it’s late.</em></p>
 </section>
 `;
   return layout({ title, description, canonical, schemas, body });
@@ -641,10 +720,10 @@ const neighborhoodPage = (nh) => {
 const thorncliffePage = () => neighborhoodPage(allNeighborhoods.find(n => n.slug === "thorncliffe"));
 
 // ============================================================
-// PAGE: PIZZA (generic — emits a page for each of the 27 named pizzas)
+// PAGE: PIZZA (generic, emits a page for each of the 27 named pizzas)
 // ============================================================
 const pizzaPage = (p) => {
-  const title = `${p.name} Pizza — TOPS Pizza & Sports Bar Calgary`;
+  const title = `${p.name} Pizza, TOPS Pizza & Sports Bar Calgary`;
   const description = `${p.name}: ${p.ingredients.join(", ")}. ${p.description.slice(0, 100)}...`;
   const canonical = `${site.url}/${p.slug}/`;
 
@@ -682,7 +761,7 @@ const pizzaPage = (p) => {
     <h1>${esc(p.name)}</h1>
     <p class="lede">${esc(p.description)}</p>
     <div class="hero-cta">
-      <a class="btn btn-primary" href="tel:${site.nap.phone}">Order — ${esc(site.nap.phoneDisplay)}</a>
+      <a class="btn btn-primary" href="tel:${site.nap.phone}">Order, ${esc(site.nap.phoneDisplay)}</a>
     </div>
   </div>
 </section>
@@ -712,16 +791,16 @@ ${p.image ? `
   ` : `<p>Available in Personal (8"), Medium (10"), Large (12"), and Extra Large (14"). <a href="tel:${site.nap.phone}">Call for pricing</a>.</p>`}
   <h3>Crust Options</h3>
   <ul class="size-list">
-    <li><strong>Gluten Free Crust</strong> — Medium only · add $${pizzaExtras.glutenFreeCrust.price}</li>
-    <li><strong>Half & Half toppings</strong> — Large and Extra Large only · add $${pizzaExtras.halfAndHalf.price}</li>
-    <li><strong>Thin Crust</strong> — Medium, Large, or Extra Large · add $${pizzaExtras.thinCrust.price}</li>
+    <li><strong>Gluten Free Crust</strong>, Medium only · add $${pizzaExtras.glutenFreeCrust.price}</li>
+    <li><strong>Half & Half toppings</strong>, Large and Extra Large only · add $${pizzaExtras.halfAndHalf.price}</li>
+    <li><strong>Thin Crust</strong>, Medium, Large, or Extra Large · add $${pizzaExtras.thinCrust.price}</li>
   </ul>
   <p class="text-small"><em>Extra meat or cheese: $${pizzaExtras.extraMeatCheese.prices.personal} / $${pizzaExtras.extraMeatCheese.prices.medium} / $${pizzaExtras.extraMeatCheese.prices.large} / $${pizzaExtras.extraMeatCheese.prices.xlarge} (by size). Extra veg: same.</em></p>
 
   <h2>How To Order</h2>
-  <p><strong>Phone (recommended for delivery):</strong> <a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a> — our in-house driver brings it to your door.</p>
+  <p><strong>Phone (recommended for delivery):</strong> <a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a>, our in-house driver brings it to your door.</p>
   <p><strong>Or via:</strong> <a href="${site.order.skipTheDishes}" rel="noopener">Skip the Dishes</a>, <a href="${site.order.uberEats}" rel="noopener">Uber Eats</a>, <a href="${site.order.doorDash}" rel="noopener">DoorDash</a>.</p>
-  <p><strong>Dine in:</strong> Walk up — there’s usually a booth.</p>
+  <p><strong>Dine in:</strong> Walk up, there’s usually a booth.</p>
 
   <h2>You Might Also Like</h2>
   <div class="pizza-grid small">
@@ -747,7 +826,7 @@ const thorncliffePizzaPage = () => pizzaPage(allPizzas.find(p => p.slug === "the
 // PAGE: CONTACT
 // ============================================================
 const contactPage = () => {
-  const title = `Contact TOPS Pizza & Sports Bar — NW Calgary`;
+  const title = `Contact TOPS Pizza & Sports Bar, NW Calgary`;
   const description = `Get in touch with TOPS Pizza & Sports Bar. ${site.nap.streetAddress}, ${site.nap.locality}, ${site.nap.region}. Phone ${site.nap.phoneDisplay}.`;
   const canonical = `${site.url}/contact/`;
   const schemas = [
@@ -776,7 +855,7 @@ const contactPage = () => {
 <section class="prose wrap">
   <h2>Call Us</h2>
   <p><a class="btn btn-primary" href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a></p>
-  <p>Phone orders go directly to our in-house driver — best route for delivery in our NW Calgary service area.</p>
+  <p>Phone orders go directly to our in-house driver, best route for delivery in our NW Calgary service area.</p>
 
   <h2>Visit Us</h2>
   <p><strong>${esc(site.nap.streetAddress)}</strong><br/>${esc(site.nap.locality)}, ${esc(site.nap.region)} ${esc(site.nap.postalCode)}</p>
@@ -795,7 +874,7 @@ const contactPage = () => {
   </ul>
 
   <h2>Send Us a Note</h2>
-  <p>For catering inquiries, large group bookings, feedback, or anything else — drop a note via our form on the existing site or call directly. (Contact form will integrate with GHL webhook in production.)</p>
+  <p>For catering inquiries, large group bookings, feedback, or anything else, drop a note via our form on the existing site or call directly. (Contact form will integrate with GHL webhook in production.)</p>
 
   <h2>Find Us on the Map</h2>
   <div class="map-embed">
@@ -807,10 +886,10 @@ const contactPage = () => {
 };
 
 // ============================================================
-// PAGE: DAILY SPECIAL (generic — emits one per day of week + happy hour)
+// PAGE: DAILY SPECIAL (generic, emits one per day of week + happy hour)
 // ============================================================
 const dailySpecialPage = (s) => {
-  const title = `${s.title} — TOPS Pizza & Sports Bar NW Calgary`;
+  const title = `${s.title}, TOPS Pizza & Sports Bar NW Calgary`;
   const canonical = `${site.url}/${s.slug}/`;
   const schemas = [
     restaurantSchema(),
@@ -834,20 +913,20 @@ const dailySpecialPage = (s) => {
   <p>${esc(s.body)}</p>
 
   <h2>How Specials Work at TOPS</h2>
-  <p>Most of our pub-only deals run in-house (you have to be at the bar to get them — some deals are just too good to take home). Pricing and timing change from week to week, so the most reliable move is to call.</p>
+  <p>Most of our pub-only deals run in-house (you have to be at the bar to get them, some deals are just too good to take home). Pricing and timing change from week to week, so the most reliable move is to call.</p>
   <p><a class="btn btn-primary" href="tel:${site.nap.phone}">${esc(s.cta)}</a></p>
 
   <h2>While You’re Here</h2>
   <ul>
     <li>${site.sportsBar.tvCount}+ TVs covering every NHL, CFL, NFL, MLB, NBA, and UFC game worth watching</li>
-    <li>Full bar — cold beer, cocktails, highballs on special</li>
+    <li>Full bar, cold beer, cocktails, highballs on special</li>
     <li>Wings (31 flavours), pizza, burgers, pastas, salads</li>
     <li>Pool table, jukebox, VLTs in the lounge</li>
     <li>Family-friendly dining room until 9 PM</li>
   </ul>
 
   <h2>Or Take It Home</h2>
-  <p>Phone orders, Skip the Dishes, Uber Eats, DoorDash — all available. <a class="text-link" href="/thorncliffe/">See our NW Calgary delivery areas →</a></p>
+  <p>Phone orders, Skip the Dishes, Uber Eats, DoorDash, all available. <a class="text-link" href="/thorncliffe/">See our NW Calgary delivery areas →</a></p>
 </section>
 `;
   return layout({ title, description: s.description, canonical, schemas, body });
@@ -857,7 +936,7 @@ const dailySpecialPage = (s) => {
 // PAGE: DAILY SPECIALS LANDING (lists all 7 days + happy hour)
 // ============================================================
 const dailySpecialsLandingPage = () => {
-  const title = `Daily Specials & Happy Hour — TOPS Pizza & Sports Bar NW Calgary`;
+  const title = `Daily Specials & Happy Hour, TOPS Pizza & Sports Bar NW Calgary`;
   const description = `Daily specials, wing nights, game-day perks, and happy hour at TOPS Pizza & Sports Bar in Thorncliffe, NW Calgary.`;
   const canonical = `${site.url}/daily-specials/`;
   const schemas = [
@@ -877,7 +956,7 @@ const dailySpecialsLandingPage = () => {
 </section>
 
 <section class="prose wrap">
-  <p>Tap any day below to see what we’re doing — or just call ${esc(site.nap.phoneDisplay)} for tonight’s current pub special.</p>
+  <p>Tap any day below to see what we’re doing, or just call ${esc(site.nap.phoneDisplay)} for tonight’s current pub special.</p>
   <div class="pizza-grid">
     ${dailySpecials.map(s => `
       <a class="pizza-card" href="/${s.slug}/">
@@ -897,8 +976,8 @@ const dailySpecialsLandingPage = () => {
 // PAGE: MENU LANDING
 // ============================================================
 const menuLandingPage = () => {
-  const title = `Full Menu — TOPS Pizza & Sports Bar NW Calgary`;
-  const description = `The full TOPS menu — pizzas, wings, burgers, pastas, salads, Greek classics, and desserts. NW Calgary’s family pizzeria since ${site.yearFounded}.`;
+  const title = `Full Menu, TOPS Pizza & Sports Bar NW Calgary`;
+  const description = `The full TOPS menu, pizzas, wings, burgers, pastas, salads, Greek classics, and desserts. NW Calgary’s family pizzeria since ${site.yearFounded}.`;
   const canonical = `${site.url}/menu/`;
   const schemas = [
     restaurantSchema(),
@@ -924,7 +1003,7 @@ const menuLandingPage = () => {
   <div class="wrap">
     <p class="eyebrow">Our Menu</p>
     <h1>The Full TOPS Menu</h1>
-    <p class="lede">Hand-tossed pizzas, 31 wing flavours, Greek classics, pub favourites — ${site.yearsServing} years of family recipes.</p>
+    <p class="lede">Hand-tossed pizzas, 31 wing flavours, Greek classics, pub favourites, ${site.yearsServing} years of family recipes.</p>
   </div>
 </section>
 
@@ -948,10 +1027,10 @@ const menuLandingPage = () => {
 };
 
 // ============================================================
-// PAGE: MENU CATEGORY (generic — emits one per menu section)
+// PAGE: MENU CATEGORY (generic, emits one per menu section)
 // ============================================================
 const menuCategoryPage = (cat) => {
-  const title = `${cat.name} — TOPS Pizza & Sports Bar Menu (NW Calgary)`;
+  const title = `${cat.name}, TOPS Pizza & Sports Bar Menu (NW Calgary)`;
   const description = cat.description;
   const canonical = `${site.url}/${cat.slug}/`;
 
@@ -998,11 +1077,11 @@ const menuCategoryPage = (cat) => {
 
   <h2>Sizes &amp; Crust Options</h2>
   <ul class="size-list">
-    <li><strong>Gluten Free Crust</strong> — Medium pizzas only · add $${pizzaExtras.glutenFreeCrust.price}</li>
-    <li><strong>Half &amp; Half toppings</strong> — Large &amp; Extra Large only · add $${pizzaExtras.halfAndHalf.price}</li>
-    <li><strong>Thin Crust</strong> — Medium, Large, &amp; Extra Large · add $${pizzaExtras.thinCrust.price}</li>
-    <li><strong>Extra meat or cheese</strong> — $${pizzaExtras.extraMeatCheese.prices.personal} / $${pizzaExtras.extraMeatCheese.prices.medium} / $${pizzaExtras.extraMeatCheese.prices.large} / $${pizzaExtras.extraMeatCheese.prices.xlarge} (by size)</li>
-    <li><strong>Extra vegetable</strong> — same pricing</li>
+    <li><strong>Gluten Free Crust</strong>, Medium pizzas only · add $${pizzaExtras.glutenFreeCrust.price}</li>
+    <li><strong>Half &amp; Half toppings</strong>, Large &amp; Extra Large only · add $${pizzaExtras.halfAndHalf.price}</li>
+    <li><strong>Thin Crust</strong>, Medium, Large, &amp; Extra Large · add $${pizzaExtras.thinCrust.price}</li>
+    <li><strong>Extra meat or cheese</strong>, $${pizzaExtras.extraMeatCheese.prices.personal} / $${pizzaExtras.extraMeatCheese.prices.medium} / $${pizzaExtras.extraMeatCheese.prices.large} / $${pizzaExtras.extraMeatCheese.prices.xlarge} (by size)</li>
+    <li><strong>Extra vegetable</strong>, same pricing</li>
   </ul>
 
   <h2>Our Full Pizza Lineup (${allPizzas.length})</h2>
@@ -1026,10 +1105,10 @@ const menuCategoryPage = (cat) => {
             <a href="/${p.slug}/">${p.signature ? "⭐ " : ""}${esc(p.name)}</a>
           </td>
           <td class="ingredients-col">${esc(p.ingredients.join(", "))}</td>
-          <td class="price-col">$${p.prices?.personal || "—"}</td>
-          <td class="price-col">$${p.prices?.medium || "—"}</td>
-          <td class="price-col">$${p.prices?.large || "—"}</td>
-          <td class="price-col">$${p.prices?.xlarge || "—"}</td>
+          <td class="price-col">$${p.prices?.personal || ", "}</td>
+          <td class="price-col">$${p.prices?.medium || ", "}</td>
+          <td class="price-col">$${p.prices?.large || ", "}</td>
+          <td class="price-col">$${p.prices?.xlarge || ", "}</td>
         </tr>
       `).join("")}
     </tbody>
@@ -1080,7 +1159,7 @@ const menuCategoryPage = (cat) => {
 // PAGE: DELIVERY LANDING (lists all 20 NW Calgary neighborhoods)
 // ============================================================
 const deliveryLandingPage = () => {
-  const title = `Delivery Areas — TOPS Pizza & Sports Bar NW Calgary`;
+  const title = `Delivery Areas, TOPS Pizza & Sports Bar NW Calgary`;
   const description = `TOPS Pizza & Sports Bar delivers to ${allNeighborhoods.length}+ NW Calgary neighborhoods including Thorncliffe, Huntington Hills, Highland Park, Beddington Heights, and more. In-house driver, hot delivery.`;
   const canonical = `${site.url}/delivery/`;
   const schemas = [
@@ -1088,7 +1167,7 @@ const deliveryLandingPage = () => {
     {
       "@type": "Service",
       "@id": `${canonical}#delivery-area`,
-      "name": "Pizza Delivery — NW Calgary",
+      "name": "Pizza Delivery, NW Calgary",
       "description": description,
       "provider": { "@id": `${site.url}/#restaurant` },
       "serviceType": "Food delivery",
@@ -1108,7 +1187,7 @@ const deliveryLandingPage = () => {
   <div class="wrap">
     <p class="eyebrow">${allNeighborhoods.length} NW Calgary Neighborhoods</p>
     <h1>We Deliver Across NW Calgary</h1>
-    <p class="lede">${site.yearsServing} years of TOPS regulars — from Thorncliffe to Beddington, Banff Trail to Balmoral. Phone orders go to our in-house driver. Apps available too.</p>
+    <p class="lede">${site.yearsServing} years of TOPS regulars, from Thorncliffe to Beddington, Banff Trail to Balmoral. Phone orders go to our in-house driver. Apps available too.</p>
     <div class="hero-cta">
       <a class="btn btn-primary" href="tel:${site.nap.phone}">Call ${esc(site.nap.phoneDisplay)}</a>
       <a class="btn btn-secondary" href="${site.order.skipTheDishes}" rel="noopener">Order via Skip</a>
@@ -1132,13 +1211,13 @@ const deliveryLandingPage = () => {
   </div>
 
   <h2>Our Service Area</h2>
-  <p>Most NW Calgary pockets bounded roughly by Country Hills Blvd to the north, Centre St N to the east, 16 Ave N to the south, and Crowchild Trail to the west — give or take a few neighborhoods on each edge.</p>
+  <p>Most NW Calgary pockets bounded roughly by Country Hills Blvd to the north, Centre St N to the east, 16 Ave N to the south, and Crowchild Trail to the west, give or take a few neighborhoods on each edge.</p>
   <div class="map-embed">
     <iframe src="https://www.google.com/maps/d/embed?mid=1Xf1OXWceyyM18AkDkbfjN11Z5P3PJSc&amp;ehbc=2E312F" loading="lazy" title="TOPS Pizza service area map"></iframe>
   </div>
 
   <h2>How To Order</h2>
-  <p><strong>Phone (recommended):</strong> <a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a> — straight to our in-house driver.</p>
+  <p><strong>Phone (recommended):</strong> <a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a>, straight to our in-house driver.</p>
   <p><strong>Apps:</strong> <a href="${site.order.skipTheDishes}" rel="noopener">Skip the Dishes</a>, <a href="${site.order.uberEats}" rel="noopener">Uber Eats</a>, <a href="${site.order.doorDash}" rel="noopener">DoorDash</a>.</p>
 </section>
 `;
@@ -1147,12 +1226,12 @@ const deliveryLandingPage = () => {
 
 // ============================================================
 // PAGE: REVIEW LANDING (QR-code destination)
-// Parallel paths — Google review vs private feedback. No sentiment gate.
+// Parallel paths, Google review vs private feedback. No sentiment gate.
 // Policy-compliant per Google's contributor policies.
 // ============================================================
 const reviewLandingPage = () => {
-  const title = `Leave a Review — TOPS Pizza & Sports Bar`;
-  const description = `Help TOPS Pizza & Sports Bar — leave a quick Google review, or share private feedback with the owners.`;
+  const title = `Leave a Review, TOPS Pizza & Sports Bar`;
+  const description = `Help TOPS Pizza & Sports Bar, leave a quick Google review, or share private feedback with the owners.`;
   const canonical = `${site.url}/review/`;
   const schemas = [
     restaurantSchema(),
@@ -1177,20 +1256,20 @@ const reviewLandingPage = () => {
       <div class="path-icon" aria-hidden="true">⭐</div>
       <h2>Write a 5-Star Google Review</h2>
       <p>Takes 30 seconds. Helps new customers find us in NW Calgary search.</p>
-      <p class="tip">💡 <em>Tip — reviews with a photo of your meal stand out the most.</em></p>
+      <p class="tip">💡 <em>Tip, reviews with a photo of your meal stand out the most.</em></p>
       <span class="path-cta">Write My Review →</span>
     </a>
 
     <a class="path-card path-feedback" href="/review/feedback/">
       <div class="path-icon" aria-hidden="true">💬</div>
       <h2>Give Private Feedback</h2>
-      <p>Tell Jim and the family directly — what worked, what didn’t, what we can do better.</p>
+      <p>Tell Jim and the family directly, what worked, what didn’t, what we can do better.</p>
       <p class="tip">📩 <em>Goes straight to the owners, not public.</em></p>
       <span class="path-cta">Open Form →</span>
     </a>
   </div>
 
-  <p class="review-fineprint">Both options are equally welcome. We read every word — public reviews help us grow, and private feedback helps us improve.</p>
+  <p class="review-fineprint">Both options are equally welcome. We read every word, public reviews help us grow, and private feedback helps us improve.</p>
 </section>
 `;
   return layout({ title, description, canonical, schemas, body });
@@ -1201,7 +1280,7 @@ const reviewLandingPage = () => {
 // Posts to /api/feedback → Cloudflare Pages Function → GHL webhook
 // ============================================================
 const reviewFeedbackPage = () => {
-  const title = `Send Private Feedback — TOPS Pizza & Sports Bar`;
+  const title = `Send Private Feedback, TOPS Pizza & Sports Bar`;
   const description = `Share private feedback with the owners of TOPS Pizza & Sports Bar in NW Calgary. We read every message.`;
   const canonical = `${site.url}/review/feedback/`;
   const schemas = [
@@ -1216,7 +1295,7 @@ const reviewFeedbackPage = () => {
   const body = `
 <section class="hero hero-page">
   <div class="wrap">
-    <p class="eyebrow">Private — Goes Straight to the Owners</p>
+    <p class="eyebrow">Private, Goes Straight to the Owners</p>
     <h1>Tell Us What Happened</h1>
     <p class="lede">Jim, Kristina, and Peter read every message. Anonymous is fine. The more honest you are, the more useful it is.</p>
   </div>
@@ -1224,7 +1303,7 @@ const reviewFeedbackPage = () => {
 
 <section class="prose wrap" style="max-width:640px;">
   <form id="feedback-form" class="feedback-form" action="/api/feedback" method="POST" novalidate>
-    <p class="casl-note">If you opt in to texts below: 1–2 messages/month from TOPS Pizza, reply STOP to unsubscribe. Standard message and data rates apply.</p>
+    <p class="casl-note">If you opt in to texts below: 1 to 2 messages/month from TOPS Pizza, reply STOP to unsubscribe. Standard message and data rates apply.</p>
     <input type="text" name="company" class="honeypot" tabindex="-1" autocomplete="off" />
 
     <label>
@@ -1239,7 +1318,7 @@ const reviewFeedbackPage = () => {
 
     <label>
       <span class="field-label">What happened? <em>(required)</em></span>
-      <textarea name="story" rows="5" required placeholder="The food, the service, the wait, the atmosphere — whatever stood out."></textarea>
+      <textarea name="story" rows="5" required placeholder="The food, the service, the wait, the atmosphere, whatever stood out."></textarea>
     </label>
 
     <label>
@@ -1265,7 +1344,7 @@ const reviewFeedbackPage = () => {
 
     <label class="checkbox-row">
       <input type="checkbox" name="sms_optin" value="yes" />
-      <span>📱 <strong>Text me a thank-you coupon</strong> for my next visit (max 1–2 messages/month, reply STOP to opt out). Phone number above will be used.</span>
+      <span>📱 <strong>Text me a thank-you coupon</strong> for my next visit (max 1 to 2 messages/month, reply STOP to opt out). Phone number above will be used.</span>
     </label>
 
     <button type="submit" class="btn btn-primary">Send Feedback</button>
@@ -1298,7 +1377,7 @@ const reviewFeedbackPage = () => {
           status.className = 'form-status error';
         }
       } catch (err) {
-        status.textContent = 'Network error — try again, or call us at ${site.nap.phoneDisplay}.';
+        status.textContent = 'Network error, try again, or call us at ${site.nap.phoneDisplay}.';
         status.className = 'form-status error';
       }
     });
@@ -1311,15 +1390,15 @@ const reviewFeedbackPage = () => {
 
 // ============================================================
 // PAGE: REVIEW BONUS (intermediate step before bouncing to Google)
-// Soft-tied "thanks for visiting" coupon — frames it as gratitude
+// Soft-tied "thanks for visiting" coupon, frames it as gratitude
 // for the visit, not payment for the review. Email is optional.
 // ============================================================
 // NOTE (2026-06-15): the thank-you COUPON offer is retired (owner not offering a
-// discount yet — pending price/terms review with their accountant). This page is kept
+// discount yet, pending price/terms review with their accountant). This page is kept
 // only as a redirect so any printed/cached /review/bonus/ links land on the new
 // two-option review page (5-star Google review OR private feedback).
 const reviewBonusPage = () => {
-  const title = `Leave a Review — TOPS Pizza & Sports Bar`;
+  const title = `Leave a Review, TOPS Pizza & Sports Bar`;
   const description = `Leave a 5-star Google review or send private feedback to TOPS Pizza & Sports Bar.`;
   const canonical = `${site.url}/review/`;
   const schemas = [];
@@ -1338,8 +1417,8 @@ const reviewBonusPage = () => {
 };
 
 const _reviewBonusPage_RETIRED = () => {
-  const title = `Thanks for Visiting — TOPS Pizza & Sports Bar`;
-  const description = `Quick stop on the way to Google — drop your email for a thank-you coupon, then head over to leave your review.`;
+  const title = `Thanks for Visiting, TOPS Pizza & Sports Bar`;
+  const description = `Quick stop on the way to Google, drop your email for a thank-you coupon, then head over to leave your review.`;
   const canonical = `${site.url}/review/bonus/`;
   const schemas = [
     restaurantSchema(),
@@ -1355,13 +1434,13 @@ const _reviewBonusPage_RETIRED = () => {
   <div class="wrap">
     <p class="eyebrow">Thanks for Visiting</p>
     <h1>One Quick Thing Before You Go</h1>
-    <p class="lede">Drop your mobile number and we’ll <strong>text you a thank-you coupon</strong> for your next visit — for your next visit. Or skip ahead to Google.</p>
+    <p class="lede">Drop your mobile number and we’ll <strong>text you a thank-you coupon</strong> for your next visit, for your next visit. Or skip ahead to Google.</p>
   </div>
 </section>
 
 <section class="prose wrap" style="max-width:520px;">
   <form id="bonus-form" class="feedback-form" action="/api/feedback" method="POST" novalidate>
-    <p class="casl-note">By submitting, you consent to receive SMS or email from TOPS Pizza &amp; Sports Bar. Frequency: 1–2 messages/month. Reply STOP to unsubscribe. Standard message and data rates may apply.</p>
+    <p class="casl-note">By submitting, you consent to receive SMS or email from TOPS Pizza &amp; Sports Bar. Frequency: 1 to 2 messages/month. Reply STOP to unsubscribe. Standard message and data rates may apply.</p>
     <input type="text" name="company" class="honeypot" tabindex="-1" autocomplete="off" />
     <input type="hidden" name="type" value="reviewer-thanks" />
 
@@ -1382,7 +1461,7 @@ const _reviewBonusPage_RETIRED = () => {
 
     <label class="checkbox-row">
       <input type="checkbox" name="sms_optin" value="yes" checked />
-      <span>📱 <strong>Text me my coupon</strong> + occasional pub-special updates (max 1–2/month). Standard message rates apply. Reply <strong>STOP</strong> to opt out anytime.</span>
+      <span>📱 <strong>Text me my coupon</strong> + occasional pub-special updates (max 1 to 2/month). Standard message rates apply. Reply <strong>STOP</strong> to opt out anytime.</span>
     </label>
 
     <button type="submit" class="btn btn-primary" id="bonus-submit">Text Me My Coupon → Open Google</button>
@@ -1391,7 +1470,7 @@ const _reviewBonusPage_RETIRED = () => {
 
   <p class="review-fineprint" style="text-align:left;">
     <a class="text-link" href="${site.nap.googleReviewUrl}" target="_blank" rel="noopener">Skip and just open Google →</a><br/>
-    <em>No problem — the coupon offer stays open for next time.</em>
+    <em>No problem, the coupon offer stays open for next time.</em>
   </p>
 </section>
 
@@ -1410,7 +1489,7 @@ const _reviewBonusPage_RETIRED = () => {
       const data = Object.fromEntries(new FormData(form));
       // Open Google NOW, synchronously, while the click's user activation is still
       // valid. window.open() after an "await" gets popup-blocked by browsers, so the
-      // review tab never opened — that was the bug.
+      // review tab never opened, that was the bug.
       const gtab = window.open(GOOGLE_URL, '_blank', 'noopener');
       // Fire the coupon submit; keepalive lets it finish even as we navigate away.
       try {
@@ -1437,7 +1516,7 @@ const _reviewBonusPage_RETIRED = () => {
 // PAGE: REVIEW THANKS (after form submission)
 // ============================================================
 const reviewThanksPage = () => {
-  const title = `Thanks — TOPS Pizza & Sports Bar`;
+  const title = `Thanks, TOPS Pizza & Sports Bar`;
   const description = `Thanks for your feedback. We read every message.`;
   const canonical = `${site.url}/review/thanks/`;
   const schemas = [
@@ -1453,7 +1532,7 @@ const reviewThanksPage = () => {
 <section class="hero hero-page">
   <div class="wrap">
     <p class="eyebrow" id="thanks-eyebrow">Message Received</p>
-    <h1 id="thanks-heading">Thanks — We Got It.</h1>
+    <h1 id="thanks-heading">Thanks, We Got It.</h1>
     <p class="lede" id="thanks-lede">Jim, Kristina, and Peter will read it personally. If you left contact info and want a response, we’ll be in touch.</p>
   </div>
 </section>
@@ -1470,12 +1549,12 @@ const reviewThanksPage = () => {
 };
 
 // ============================================================
-// PAGE: STAFF COUPON REDEEM (/redeem/) — private (noindex), no PIN
+// PAGE: STAFF COUPON REDEEM (/redeem/), private (noindex), no PIN
 // Staff type a coupon code -> validate against D1 -> mark redeemed ->
 // auto thank-you SMS to the customer. Shows the offer terms.
 // ============================================================
 const reviewRedeemPage = () => {
-  const title = `Redeem Coupon — TOPS Pizza & Sports Bar (Staff)`;
+  const title = `Redeem Coupon, TOPS Pizza & Sports Bar (Staff)`;
   const description = `Staff tool: redeem a customer's $5 coupon.`;
   const canonical = `${site.url}/redeem/`;
   const schemas = [];
@@ -1539,7 +1618,7 @@ const reviewRedeemPage = () => {
           show('#fff7e6', '#8a5a00', '⚠️ <strong>' + (d.message || 'Code not found.') + '</strong><br/>Do not apply the discount.');
         }
       } catch (e) {
-        show('#fde8e8', '#9b1c1c', '⚠️ Network error — try again.');
+        show('#fde8e8', '#9b1c1c', '⚠️ Network error, try again.');
       } finally {
         btn.disabled = false; btn.textContent = 'Check & Redeem';
       }
@@ -1562,19 +1641,19 @@ const reviewRedeemPage = () => {
 // Auth: protected by Cloudflare Access at the /owner/* path (configure in CF dashboard).
 // ============================================================
 const ownerPortalPage = () => {
-  const title = `Owner Portal — TOPS Pizza`;
-  const description = `Request changes to topspizza.ca — for the owners.`;
+  const title = `Owner Portal, TOPS Pizza`;
+  const description = `Request changes to topspizza.ca, for the owners.`;
   const canonical = `${site.url}/owner/`;
   const schemas = [
-    // No SEO schema — this is a private internal page. Include noindex meta in template.
+    // No SEO schema, this is a private internal page. Include noindex meta in template.
   ];
 
   const body = `
 <section class="hero hero-page">
   <div class="wrap">
-    <p class="eyebrow">Internal — TOPS Owners Only</p>
+    <p class="eyebrow">Internal, TOPS Owners Only</p>
     <h1>Request a Site Change</h1>
-    <p class="lede">Type or speak what you want changed. Steve gets a text message right away, makes the change, and pushes it live — usually same day for small things.</p>
+    <p class="lede">Type or speak what you want changed. Steve gets a text message right away, makes the change, and pushes it live, usually same day for small things.</p>
   </div>
 </section>
 
@@ -1604,7 +1683,7 @@ const ownerPortalPage = () => {
 
     <label>
       <span class="field-label">What do you want changed?</span>
-      <textarea name="request_text" id="request-text" rows="8" required placeholder="e.g. Monday special is now half-price wings 5–8 PM. Or: change Tuesday night football special wording. Or: add a new pizza called The Olympian — feta, kalamata, gyro meat, tzatziki drizzle."></textarea>
+      <textarea name="request_text" id="request-text" rows="8" required placeholder="e.g. Monday special is now half-price wings 5 to 8 PM. Or: change Tuesday night football special wording. Or: add a new pizza called The Olympian, feta, kalamata, gyro meat, tzatziki drizzle."></textarea>
       <button type="button" id="voice-btn" class="btn btn-secondary" style="margin-top:8px; align-self:flex-start; color:var(--black); border-color:var(--gold);">
         🎤 Or tap to speak instead
       </button>
@@ -1618,10 +1697,10 @@ const ownerPortalPage = () => {
   <div style="margin-top:40px; padding:20px; background:var(--cream); border-radius:8px;">
     <h3 style="margin-bottom:8px;">Tips for fast turnaround</h3>
     <ul style="margin-bottom:0; font-size:14px; color:var(--grey-700);">
-      <li>Be specific: "change Monday special to 'half price wings 5–8 PM, dine-in only'" beats "update Monday special".</li>
+      <li>Be specific: "change Monday special to 'half price wings 5 to 8 PM, dine-in only'" beats "update Monday special".</li>
       <li>For menu items: include the full name, ingredients, and what makes it special.</li>
       <li>For hours: list the day(s) and the exact new opening / closing time.</li>
-      <li>For photos: use the photo-upload section below — much easier than texting Steve.</li>
+      <li>For photos: use the photo-upload section below, much easier than texting Steve.</li>
     </ul>
   </div>
 </section>
@@ -1648,7 +1727,7 @@ const ownerPortalPage = () => {
     </label>
 
     <label>
-      <span class="field-label">Notes <em>(optional — anything Steve should know about this photo?)</em></span>
+      <span class="field-label">Notes <em>(optional, anything Steve should know about this photo?)</em></span>
       <textarea name="notes" rows="3" placeholder="e.g. 'New menu item we're adding', 'Replace the existing Hawaiian photo', 'For the homepage hero'"></textarea>
     </label>
 
@@ -1702,7 +1781,7 @@ const ownerPortalPage = () => {
       }
     });
 
-    // Web Speech API for voice input — browser-native, no API key
+    // Web Speech API for voice input, browser-native, no API key
     const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Speech) {
       voiceBtn.disabled = true;
@@ -1759,7 +1838,7 @@ const ownerPortalPage = () => {
         }
         const fileSize = fileInput.files[0].size;
         if (fileSize > 15 * 1024 * 1024) {
-          photoStatus.textContent = 'File is too big — max 15 MB. Try a smaller photo.';
+          photoStatus.textContent = 'File is too big, max 15 MB. Try a smaller photo.';
           photoStatus.className = 'form-status error';
           return;
         }
@@ -1788,7 +1867,7 @@ const ownerPortalPage = () => {
 </script>
 `;
 
-  // Owner page is private — explicitly noindex
+  // Owner page is private, explicitly noindex
   const html = layout({ title, description, canonical, schemas, body });
   return html.replace(
     '<meta name="viewport"',
@@ -1801,7 +1880,7 @@ const ownerPortalPage = () => {
 // ============================================================
 const css = `
 :root {
-  /* TOPS brand palette — gold on black, matching the existing logo */
+  /* TOPS brand palette, gold on black, matching the existing logo */
   --gold: #E8B23A;
   --gold-bright: #F5C84A;
   --gold-dark: #B88823;
@@ -1890,6 +1969,12 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 /* Story */
 .story { background: var(--cream); }
 .story p { max-width: 760px; font-size: 17px; color: var(--grey-700); margin-bottom: 16px; }
+
+/* FAQ */
+#faq .faq-list { max-width: 820px; margin-top: 24px; }
+#faq .faq-item { padding: 22px 24px; margin-bottom: 16px; background: var(--white); border-radius: 8px; border-left: 4px solid var(--gold); box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+#faq .faq-item h3 { color: var(--black); margin-bottom: 8px; }
+#faq .faq-item p { font-size: 16px; color: var(--grey-700); line-height: 1.6; margin-bottom: 0; max-width: none; }
 
 /* Reviews */
 .reviews { background: var(--white); }
@@ -1984,7 +2069,7 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
   .menu-table th.ingredients-col, .menu-table td.ingredients-col { display: none; }
 }
 
-/* Size list (replaces price table — prices vary per pizza) */
+/* Size list (replaces price table, prices vary per pizza) */
 .size-list { list-style: none; padding: 0; max-width: 480px; margin-bottom: 14px; }
 .size-list li { padding: 10px 14px; background: var(--cream); border-radius: 6px; margin-bottom: 8px; font-size: 15px; }
 .size-list li strong { color: var(--black); margin-right: 8px; }
@@ -1993,7 +2078,7 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 .map-embed { margin: 24px 0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,.1); }
 .map-embed iframe { display: block; width: 100%; height: 420px; border: 0; }
 
-/* Hours list — tight, scannable */
+/* Hours list, tight, scannable */
 .hours { list-style: none; padding: 0; max-width: 380px; }
 .hours li { display: flex; justify-content: space-between; padding: 3px 0; font-size: 14px; line-height: 1.35; }
 .hours li span:first-child { font-weight: 600; }
@@ -2097,7 +2182,7 @@ function writePage(relPath, html) {
 }
 
 // Clean output
-// Skip clean — Windows-mounted folder denies recursive unlink. writeFileSync overwrites.
+// Skip clean, Windows-mounted folder denies recursive unlink. writeFileSync overwrites.
 fs.mkdirSync(OUT, { recursive: true });
 fs.mkdirSync(path.join(OUT, "assets"), { recursive: true });
 
@@ -2175,7 +2260,7 @@ if (fs.existsSync(ASSETS_SRC)) {
   console.log(`  Copied ${copied} local assets (recursive) to dist/assets/`);
 }
 
-// ---------- sitemap.xml — all URLs ----------
+// ---------- sitemap.xml, all URLs ----------
 const allUrls = [
   `${site.url}/`,
   `${site.url}/about/`,
@@ -2202,6 +2287,40 @@ fs.writeFileSync(path.join(OUT, "sitemap.xml"), sitemap);
 
 // ---------- robots.txt ----------
 fs.writeFileSync(path.join(OUT, "robots.txt"), `User-agent: *\nAllow: /\nSitemap: ${site.url}/sitemap.xml\n`);
+
+// ---------- llms.txt (AI-discoverability index; source file beside build.js) ----------
+const llmsSrc = path.join(__dirname, "llms.txt");
+if (fs.existsSync(llmsSrc)) fs.copyFileSync(llmsSrc, path.join(OUT, "llms.txt"));
+
+// ---------- 404 page ----------
+// Cloudflare Pages serves dist/404.html with a real 404 status for unmatched routes.
+// Without it, dead URLs soft-404 to the homepage at 200, which Google flags as duplicate.
+const notFoundBody = `<section class="hero" style="text-align:center">
+  <div class="wrap">
+    <h1>Page not found</h1>
+    <p class="lede">We could not find that page. It may have moved, or that menu item is no longer available. Try one of these:</p>
+    <p style="margin-top:18px">
+      <a class="btn" href="/">Home</a>
+      <a class="btn" href="/menu/">Full menu</a>
+      <a class="btn" href="/pizza-menu/">Pizzas</a>
+      <a class="btn" href="/contact/">Contact</a>
+    </p>
+    <p style="margin-top:18px">Hungry now? Call us at <a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a>.</p>
+  </div>
+</section>`;
+fs.writeFileSync(path.join(OUT, "404.html"), layout({
+  title: `Page not found | ${site.name}`,
+  description: "That page could not be found. Browse the Top's Pizza menu or get in touch.",
+  canonical: `${site.url}/404`,
+  schemas: [],
+  body: notFoundBody,
+  noindex: true,
+}));
+
+// ---------- _redirects (discontinued pizzas -> menu; keeps old Google/links off a 404) ----------
+const goneItems = ["the-italian-pizza","tops-original-pizza","californian-pizza","chicken-alfredo-pizza","hawaiian-pizza","popeye-pizza"];
+const redirects = goneItems.flatMap(s => [`/${s}  /menu/  301`, `/${s}/  /menu/  301`]).join("\n") + "\n";
+fs.writeFileSync(path.join(OUT, "_redirects"), redirects);
 
 console.log(`\n✓ Built ${allUrls.length} pages + assets to: ${OUT}`);
 console.log(`  - 4 core pages (Home, About, Contact, Sports Bar)`);

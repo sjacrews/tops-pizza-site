@@ -1,5 +1,5 @@
 // ============================================================
-// TOPS Pizza — single source of truth for site data
+// TOPS Pizza, single source of truth for site data
 // Edit values here, run `node build.js`, all pages regenerate.
 // This is what makes the site easy for VPS Claude (or you) to update.
 // ============================================================
@@ -7,15 +7,15 @@
 export const site = {
   name: "TOPS Pizza & Sports Bar",
   shortName: "TOPS Pizza",
-  tagline: "Where cold beer meets hot pizza — and the game's always on.",
+  tagline: "Where cold beer meets hot pizza, and the game's always on.",
   description: "TOPS Pizza & Sports Bar in NW Calgary serves up legendary pizza, pub food, cold drinks, and live sports. Family recipe since 1975. Dine in, take out, or catch the game with us today.",
   url: "https://topspizza.ca",
-  yearFounded: 1975, // their own menu page says "since 1975"; About page implies later — confirm with owner
+  yearFounded: 1975, // their own menu page says "since 1975"; About page implies later, confirm with owner
   yearsServing: new Date().getFullYear() - 1975,
 
   nap: {
     streetAddress: "5602 4 St NW",
-    suite: null, // YellowPages lists "7-" prefix — decide canonical form
+    suite: null, // YellowPages lists "7-" prefix, decide canonical form
     locality: "Calgary",
     region: "AB",
     postalCode: "T2K 1B2",
@@ -24,14 +24,14 @@ export const site = {
     phoneDisplay: "(403) 275-2722",
     neighborhood: "Thorncliffe",
     geo: { latitude: 51.101367, longitude: -114.0706521 },
-    placeId: "ChIJY02FpLRlcVMRsckmxNq03Ws", // address-level place_id from Place ID Finder (works for schema.org but NOT for the writereview URL — see googleReviewUrl below for the actual review URL)
+    placeId: "ChIJY02FpLRlcVMRsckmxNq03Ws", // address-level place_id from Place ID Finder (works for schema.org but NOT for the writereview URL, see googleReviewUrl below for the actual review URL)
     fid: "/g/11gyxl2647", // TOPS-specific Google Feature ID (from Maps URL, May 2026)
     cid: "7771183892810480049", // decimal CID = 0x6bddb4dac426c9b1, the TOPS business hash from Google Maps
     googleMapsUrl: "https://www.google.com/maps/place/5602+4+St+NW,+Calgary,+AB+T2K+1B2,+Canada/@51.101367,-114.073227,17z",
-    // Direct Google review write URL — uses the place_id we already have
+    // Direct Google review write URL, uses the place_id we already have
     // Opens Google Maps directly on the TOPS Pizza listing with the reviews tab visible (!9m1!1b1 flag).
     // Customer clicks "Write a review" from there. One extra click vs. the search.google writereview URL,
-    // but reliable — the search URL format requires a ChIJ place_id we couldn't get for the business specifically
+    // but reliable, the search URL format requires a ChIJ place_id we couldn't get for the business specifically
     // (the address-level place_id served 3 different businesses at 5602 4 St NW).
     googleReviewUrl: "https://www.google.com/maps/place/Tops+Pizza/@51.1014175,-114.0704116,17z/data=!4m8!3m7!1s0x537165b4a4854d63:0x6bddb4dac426c9b1!8m2!3d51.1014175!4d-114.0704116!9m1!1b1!16s%2Fg%2F11gyxl2647"
   },
@@ -56,7 +56,7 @@ export const site = {
     story: "Jim grew up surrounded by traditional Greek cooking. Armed with a dough recipe passed down from the old country, he and his wife Kristina immigrated to Canada and built TOPS Pizza & Sports Bar from the ground up. Their son Peter now plays an active role in carrying the family legacy forward."
   },
 
-  // Brand identity — extracted from the existing topspizza.ca site
+  // Brand identity, extracted from the existing topspizza.ca site
   brand: {
     logoUrl: "https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e6643bc5f22a097daa2132.png", // currently served from GHL CDN; replace with local /assets/logo.png once asset is downloaded
     primaryColor: "#E8B23A",   // warm gold from logo
@@ -67,7 +67,7 @@ export const site = {
 
   // Real images pulled from the existing topspizza.ca site (served through GHL CDN as WebP).
   // Long-term: download these to /assets/ and self-host. For now, hotlinking is fine.
-  // Local images (real photos from GBP — self-hosted in /assets/)
+  // Local images (real photos from GBP, self-hosted in /assets/)
   // These take priority over the hotlinked GHL CDN urls below.
   localImages: {
     heroHome: "/assets/tops_pizza_bar.webp",          // bar with Stanley Cup Playoffs on TVs
@@ -103,12 +103,12 @@ export const site = {
   },
 
   social: {
-    // TODO confirm with owner — placeholder URLs left commented
+    // TODO confirm with owner, placeholder URLs left commented
     // facebook: "https://www.facebook.com/topspizzacalgary",
     // instagram: "https://www.instagram.com/topspizza",
   },
 
-  // Citations / sameAs — feeds Restaurant schema and helps Knowledge Graph
+  // Citations / sameAs, feeds Restaurant schema and helps Knowledge Graph
   sameAs: [
     "https://www.yelp.ca/biz/tops-pizza-and-sports-bar-calgary",
     "https://www.tripadvisor.com/Restaurant_Review-g154913-d3982850-Reviews-Tops_Pizza_and_Sports_Bar-Calgary_Alberta.html",
@@ -119,7 +119,7 @@ export const site = {
     "https://www.ubereats.com/ca/store/tops-pizza/Jj7lcjQGSmaveypFsPhsZQ",
   ],
 
-  // Aggregate rating — verify exact count from GBP; these reflect what we found publicly
+  // Aggregate rating, verify exact count from GBP; these reflect what we found publicly
   aggregateRating: {
     ratingValue: "4.3",
     reviewCount: "209" // real GBP count per Google search panel, May 2026
@@ -132,7 +132,7 @@ export const site = {
   hasTakeout: true,
   hasDineIn: true,
 
-  // 20 neighborhoods we serve — for the homepage block + Service.areaServed
+  // 20 neighborhoods we serve, for the homepage block + Service.areaServed
   neighborhoods: [
     "Thorncliffe", "Huntington Hills", "North Haven Upper", "North Haven",
     "Highland Park", "Queens Park", "Tuxedo Park", "Capitol Hill",
@@ -157,14 +157,14 @@ export const featuredPizzas = [
     description: "Our signature pizza named for the neighborhood we’ve called home for nearly 50 years.",
     ingredients: ["Meat sauce", "Pepperoni", "Mushrooms", "Green peppers", "Ham", "Olives", "Feta"],
     neighborhood: "Thorncliffe",
-    // Prices vary per pizza — owner to provide per-pizza pricing later.
+    // Prices vary per pizza, owner to provide per-pizza pricing later.
     // Each pizza will have its own { medium, large, xlarge } once collected.
     priceRange: null,
   },
   {
     slug: "the-huntington-pizza",
     name: "The Huntington",
-    description: "Named for Huntington Hills — bold and unapologetic.",
+    description: "Named for Huntington Hills, bold and unapologetic.",
     ingredients: ["Feta", "Cheddar cheese", "Tomatoes", "Banana peppers", "Sausage"],
     neighborhood: "Huntington Hills",
   },
@@ -185,6 +185,6 @@ export const featuredNeighborhoods = [
     landmarks: ["Thorncliffe-Greenview Community Association", "Egert Park", "4 Street NW", "Centre Street North"],
     crossStreets: "4 St NW & 56 Ave NW",
     neighborhoodPizza: "the-thorncliffe-pizza",
-    deliveryEta: "20–30 min",
+    deliveryEta: "20 to 30 min",
   }
 ];
