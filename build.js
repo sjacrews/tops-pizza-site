@@ -179,6 +179,7 @@ const layout = ({ title, description, canonical, ogImage, schemas, body, noindex
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-BRBS7BTYV0"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-BRBS7BTYV0');</script>
+<script>document.addEventListener('click',function(e){var a=e.target.closest?e.target.closest('a'):null;if(!a||!a.href)return;var h=a.href;if(h.indexOf('tel:')===0){gtag('event','call_click',{link_url:h});}else if(/skipthedishes|ubereats|doordash/i.test(h)){var p=/skipthedishes/i.test(h)?'skipthedishes':/ubereats/i.test(h)?'ubereats':'doordash';gtag('event','order_click',{provider:p,link_url:h});}else if(/(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|\/dir\/)/i.test(h)){gtag('event','directions_click',{link_url:h});}},true);</script>
 <title>${esc(title)}</title>
 ${noindex ? `<meta name="robots" content="noindex,follow" />\n` : ""}<meta name="description" content="${esc(description)}" />
 <link rel="canonical" href="${esc(canonical)}" />
