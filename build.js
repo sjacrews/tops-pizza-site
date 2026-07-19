@@ -357,8 +357,8 @@ const faqSection = (faqs) => `
 // PAGE: HOMEPAGE
 // ============================================================
 const homepage = () => {
-  const title = `${site.name} | Best Pizza, Pub Food & Sports in NW Calgary`;
-  const description = site.description;
+  const title = `${site.name} | Menu, Delivery & Takeout in NW Calgary`;
+  const description = "See the TOPS menu and order pizza, wings and pub favourites in NW Calgary (Thorncliffe). Dine in, takeout, or delivery via SkipTheDishes, Uber Eats and DoorDash.";
   const canonical = `${site.url}/`;
   const schemas = [
     websiteSchema(),
