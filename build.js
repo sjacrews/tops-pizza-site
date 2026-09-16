@@ -2662,16 +2662,28 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
      SCROLLED: the links fold away behind the hamburger and the row collapses to
      logo | phone | hamburger, which is the whole point, more page visible while reading. */
   .site-header .nav { padding: 8px 14px; gap: 8px; }
-  .logo { order: 1; }
+  .logo { order: 1; flex: 0 0 auto; }
   .logo img { height: 40px; }
-  .primary-nav { width: 100%; order: 2; justify-content: center; padding-top: 2px; gap: 6px 14px; }
+  ${/* Beside the logo, not under it (Steve, 2026-09-16, second pass). It was width:100%,
+       which forced its own row and left a wide dead gap to the right of the logo. As a
+       flex item it takes the leftover width and wraps INSIDE that space, which also makes
+       the header shorter, not taller. min-width:0 so a long link cannot blow out the row. */''}
+  ${/* flex-basis MUST be 0, not auto. Flexbox decides wrapping on the hypothetical main
+       size, and shrinking only happens after items are placed on a line. With basis auto
+       the nav's basis is its ~470px content width, which does not fit beside the logo, so
+       it was pushed to its own row BEFORE flex-shrink could compress it. Basis 0 keeps it
+       on the logo's line, then it grows into the leftover width and wraps its own links. */''}
+  .primary-nav { width: auto; flex: 1 1 0; min-width: 0; order: 2; justify-content: center; padding-top: 0; gap: 6px 14px; }
   .primary-nav a { font-size: 14px; }
-  .order-cta { font-size: 14px; padding: 8px 14px; order: 3; margin: 2px auto 0; }
+  ${/* flex-basis 100% forces it onto its own line; max-width max-content keeps the button
+       its natural size; margin auto centres it there. The scrolled rule below MUST reset
+       that basis or the slim bar would break onto two rows. */''}
+  .order-cta { font-size: 14px; padding: 8px 14px; order: 3; flex: 0 0 100%; max-width: max-content; margin: 4px auto 0; }
 
   .site-header.scrolled .nav { padding: 6px 14px; }
   .site-header.scrolled .logo img { height: 32px; }
   .site-header.scrolled .primary-nav { display: none; }
-  .site-header.scrolled .order-cta { order: 2; margin: 0 auto; padding: 6px 12px; }
+  .site-header.scrolled .order-cta { order: 2; flex: 0 1 auto; max-width: none; margin: 0 auto; padding: 6px 12px; }
   .site-header.scrolled .nav-toggle { display: inline-flex; align-items: center; order: 3; }
   .site-header.scrolled.nav-open .primary-nav { display: flex; order: 4; width: 100%; padding-top: 10px; padding-bottom: 2px; }
   .hero { padding: 60px 0 50px; }
