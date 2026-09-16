@@ -1526,9 +1526,9 @@ const reviewLandingPage = () => {
   <div class="review-paths">
     <a class="path-card path-google" href="${site.nap.googleReviewUrl}" target="_blank" rel="noopener">
       <div class="path-icon" aria-hidden="true">⭐</div>
-      <h2>Write a 5-Star Google Review</h2>
+      <h2>Post a Photo Review on Google</h2>
       <p>Takes 30 seconds. Helps new customers find us in NW Calgary search.</p>
-      <p class="tip">💡 <em>Tip, reviews with a photo of your meal stand out the most.</em></p>
+      <p class="tip">📸 <em>If you took a photo of your food, add it. Reviews with a picture are the ones people actually stop and read.</em></p>
       <span class="path-cta">Write My Review →</span>
     </a>
 
@@ -1575,8 +1575,27 @@ const reviewFeedbackPage = () => {
 
 <section class="prose wrap" style="max-width:640px;">
   <form id="feedback-form" class="feedback-form" action="/api/feedback" method="POST" novalidate>
-    <p class="casl-note">If you opt in to texts below: 1 to 2 messages/month from TOPS Pizza, reply STOP to unsubscribe. Standard message and data rates apply.</p>
+    ${/* The CASL disclosure used to sit here too. Removed 2026-09-16 on Steve's note that
+         once is enough. It is NOT gone from the page: the same frequency + STOP language
+         lives on the sms_optin checkbox below, which is the actual point of consent and
+         where CASL wants it. Do not delete that one. */''}
     <input type="text" name="company" class="honeypot" tabindex="-1" autocomplete="off" />
+
+    <label>
+      <span class="field-label">What brought you in?</span>
+      <select name="visit_reason">
+        <option value="">Choose one, optional</option>
+        <option value="friends">Out with friends</option>
+        <option value="date">Date night</option>
+        <option value="game">To watch a game</option>
+        <option value="family">Family dinner</option>
+        <option value="team">With a team or group</option>
+        <option value="pool">Pool and the lounge</option>
+        <option value="vlts">The VLTs</option>
+        <option value="takeout">Takeout or delivery</option>
+        <option value="other">Something else</option>
+      </select>
+    </label>
 
     <label>
       <span class="field-label">How was your visit overall?</span>
@@ -1588,13 +1607,60 @@ const reviewFeedbackPage = () => {
       </div>
     </label>
 
+    <fieldset class="rating-block">
+      <legend>Three quick ones</legend>
+
+      <div class="rating-row">
+        <span class="field-label">The food</span>
+        <div class="rating-opts">
+          <label><input type="radio" name="rating_food" value="great" /><span>Great</span></label>
+          <label><input type="radio" name="rating_food" value="ok" /><span>OK</span></label>
+          <label><input type="radio" name="rating_food" value="meh" /><span>Meh</span></label>
+          <label><input type="radio" name="rating_food" value="bad" /><span>Bad</span></label>
+        </div>
+      </div>
+
+      <div class="rating-row">
+        <span class="field-label">The service</span>
+        <div class="rating-opts">
+          <label><input type="radio" name="rating_service" value="great" /><span>Great</span></label>
+          <label><input type="radio" name="rating_service" value="ok" /><span>OK</span></label>
+          <label><input type="radio" name="rating_service" value="meh" /><span>Meh</span></label>
+          <label><input type="radio" name="rating_service" value="bad" /><span>Bad</span></label>
+        </div>
+      </div>
+
+      <div class="rating-row">
+        <span class="field-label">Delivery, if you ordered in</span>
+        <div class="rating-opts">
+          <label><input type="radio" name="rating_delivery" value="great" /><span>Great</span></label>
+          <label><input type="radio" name="rating_delivery" value="ok" /><span>OK</span></label>
+          <label><input type="radio" name="rating_delivery" value="meh" /><span>Meh</span></label>
+          <label><input type="radio" name="rating_delivery" value="bad" /><span>Bad</span></label>
+          <label><input type="radio" name="rating_delivery" value="na" /><span>Didn't</span></label>
+        </div>
+      </div>
+
+      <p class="rating-note">Delivery through Skip, Uber or DoorDash is their driver, not our kitchen. Telling us here is the only way we find out.</p>
+    </fieldset>
+
+    <label>
+      <span class="field-label">How long did you wait?</span>
+      <input type="text" name="wait_time" placeholder="Optional, roughly. e.g. about 20 minutes" />
+    </label>
+
+    <label>
+      <span class="field-label">What did we get right?</span>
+      <textarea name="went_well" rows="3" placeholder="Optional. Even one thing helps us know what to keep doing."></textarea>
+    </label>
+
     <label>
       <span class="field-label">What happened? <em>(required)</em></span>
       <textarea name="story" rows="5" required placeholder="The food, the service, the wait, the atmosphere, whatever stood out."></textarea>
     </label>
 
     <label>
-      <span class="field-label">What would make it right next time?</span>
+      <span class="field-label">If it wasn't a 5-star experience, how could we make the next one better?</span>
       <textarea name="fix" rows="3" placeholder="Optional. Even a one-line suggestion helps."></textarea>
     </label>
 
@@ -1614,9 +1680,16 @@ const reviewFeedbackPage = () => {
       </label>
     </fieldset>
 
+    ${/* The thank-you COUPON offer was retired 2026-06-15 and the code path that issued
+         one only ever fired from /review/bonus/, which is now just a redirect. So this
+         checkbox promised customers something that could never arrive, for three months.
+         Reworded to what the opt-in actually does: let Peter reply. Do not re-add a
+         coupon promise unless the issuing path is live again AND Peter is offering one.
+         Steve, 2026-09-15: "We can't offer any incentives anymore. He doesn't really
+         want to." Google also prohibits incentives for reviews outright. */''}
     <label class="checkbox-row">
       <input type="checkbox" name="sms_optin" value="yes" />
-      <span>📱 <strong>Text me a thank-you coupon</strong> for my next visit (max 1 to 2 messages/month, reply STOP to opt out). Phone number above will be used.</span>
+      <span>📱 <strong>OK to text me back</strong> about this, if a reply is easier than email (1 to 2 messages a month at most, reply STOP any time). Uses the number above.</span>
     </label>
 
     <button type="submit" class="btn btn-primary">Send Feedback</button>
@@ -1812,8 +1885,8 @@ const reviewThanksPage = () => {
 <section class="prose wrap">
   <div id="from-feedback">
     <h2>One More Thing</h2>
-    <p>If you’re also up for a public 5-star Google review, that’s the single biggest favor you can do for a 50-year family business. New customers really do read them before deciding where to order.</p>
-    <p><a class="btn btn-primary" href="${site.nap.googleReviewUrl}" target="_blank" rel="noopener">Write a 5-Star Google Review</a></p>
+    <p>If you’re also up for a public Google review, that’s the single biggest favor you can do for a 50-year family business. New customers really do read them before deciding where to order. If you have a photo of your food, add it, those are the ones people stop on.</p>
+    <p><a class="btn btn-primary" href="${site.nap.googleReviewUrl}" target="_blank" rel="noopener">Write a Google Review</a></p>
   </div>
 </section>
 `;
@@ -2457,6 +2530,26 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 .sentiment:has(input:checked) { border-color: var(--gold); background: var(--cream); font-weight: 700; }
 .sentiment input { position: absolute; opacity: 0; pointer-events: none; }
 .sentiment span { font-size: 14px; }
+/* Three-ask block, added 2026-09-16. Food / service / delivery split out so a late
+   third-party driver has somewhere to land that is not Peter's public rating. Reuses
+   the .sentiment pill pattern deliberately rather than inventing a third look. */
+.rating-block { border: 1px solid var(--grey-300); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+.rating-block legend { font-size: 13px; font-weight: 600; color: var(--grey-700); padding: 0 8px; }
+.rating-row { display: flex; flex-direction: column; gap: 7px; }
+.rating-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.rating-opts label { display: inline-flex; align-items: center; cursor: pointer; padding: 7px 14px; border: 1px solid var(--grey-300); border-radius: 100px; background: var(--white); transition: all .15s; }
+.rating-opts label:has(input:checked) { border-color: var(--gold); background: var(--cream); font-weight: 700; }
+.rating-opts input { position: absolute; opacity: 0; pointer-events: none; }
+.rating-opts span { font-size: 14px; }
+.rating-note { font-size: 12.5px; color: var(--grey-700); line-height: 1.5; margin: 0; padding: 10px 12px; background: var(--cream); border-radius: 6px; }
+
+/* The visit-reason dropdown. The rule above names input types explicitly, so a
+   <select> inherits nothing without this. */
+.feedback-form select {
+  font: inherit; padding: 10px 12px; border: 1px solid var(--grey-300); border-radius: 6px; background: var(--white); color: var(--grey-900); width: 100%; box-sizing: border-box;
+}
+.feedback-form select:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: var(--gold); }
+
 .contact-fields { border: 1px dashed var(--grey-300); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
 .contact-fields legend { font-size: 13px; color: var(--grey-700); padding: 0 8px; }
 .contact-fields legend em { color: var(--grey-500); font-weight: 400; font-style: normal; }

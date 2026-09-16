@@ -68,8 +68,10 @@ export async function onRequestPost({ request, env }) {
           type, source, name, email, phone,
           sms_optin, email_optin,
           sentiment, story, fix,
+          rating_food, rating_service, rating_delivery,
+          wait_time, visit_reason, went_well,
           user_agent, ip
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         type,
         "tops-pizza-site/review",
@@ -81,6 +83,15 @@ export async function onRequestPost({ request, env }) {
         data.sentiment || null,
         data.story || null,
         data.fix || null,
+        // Added 2026-09-16 with migration 0005. Columns are named explicitly above and
+        // the catch block below SWALLOWS errors, so a field added to the form but not
+        // added here disappears with no warning. Always change the two together.
+        data.rating_food || null,
+        data.rating_service || null,
+        data.rating_delivery || null,
+        (data.wait_time || "").trim() || null,
+        data.visit_reason || null,
+        (data.went_well || "").trim() || null,
         request.headers.get("user-agent") || null,
         request.headers.get("cf-connecting-ip") || null,
       ).run();
