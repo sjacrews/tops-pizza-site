@@ -281,7 +281,15 @@ const footer = () => `<footer class="site-footer">
     <div>
       <h3>${esc(site.name)}</h3>
       <p>${esc(site.tagline)}</p>
-      <p><strong>${esc(site.nap.streetAddress)}</strong><br/>${esc(site.nap.locality)}, ${esc(site.nap.region)} ${esc(site.nap.postalCode)}</p>
+      ${/* Linked for TAPS, not for SEO. Search engines read the address from the
+           LocalBusiness schema (PostalAddress + geo + hasMap), which was already there, so
+           this adds no ranking signal. What it does add: one tap to directions on a phone,
+           and the existing GA4 click tracker already matches Google Maps hrefs, so it feeds
+           directions_click with no new tracking code.
+           NOTE: do not write a slash-star sequence inside these notes. An earlier version
+           of this comment contained one in a URL pattern and closed the comment early,
+           breaking the build. */''}
+      <p><a href="${site.nap.googleMapsUrl}" rel="noopener"><strong>${esc(site.nap.streetAddress)}</strong><br/>${esc(site.nap.locality)}, ${esc(site.nap.region)} ${esc(site.nap.postalCode)}</a></p>
       <p><a href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a></p>
     </div>
     <div>
