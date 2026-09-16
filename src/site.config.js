@@ -10,12 +10,23 @@ export const site = {
   tagline: "Where cold beer meets hot pizza, and the game's always on.",
   description: "TOPS Pizza & Sports Bar in NW Calgary serves up legendary pizza, pub food, cold drinks, and live sports. Family recipe since 1975. Dine in, take out, or catch the game with us today.",
   url: "https://topspizza.ca",
-  yearFounded: 1975, // their own menu page says "since 1975"; About page implies later, confirm with owner
+  yearFounded: 1975, // SETTLED 2026-09-15, and the "contradiction" was two different true facts.
+  //   1975 = the BUSINESS began (what the menu says, and what Peter says)
+  //   1977 = THIS LOCATION opened. That is what the Google Business Profile "opening date"
+  //          field means (February 10, 1977), and it is correct as-is. Do not "fix" it.
+  //   1979 = was simply wrong, hardcoded into build.js twice. Removed.
+  // So the site says 1975 and the GBP says 1977 and BOTH are right. Leave them alone.
+  // Good copy line, straight from Peter: in business since 1975, on this corner since 1977.
   yearsServing: new Date().getFullYear() - 1975,
 
   nap: {
-    streetAddress: "5602 4 St NW",
-    suite: null, // YellowPages lists "7-" prefix, decide canonical form
+    streetAddress: "7-5602 4 St NW",
+    // Unit 7, confirmed by the owner via Steve 2026-09-14. It is a multi unit building, which is
+    // also why the address-level place_id below served three different businesses.
+    // schema.org PostalAddress has no separate unit field, so the unit goes in streetAddress.
+    // Google's map record still holds the plain "5602 4 St NW". That is incomplete rather than
+    // wrong, and the unit form is what goes on every directory listing from here.
+    suite: "7", // note only: build.js does not read this field
     locality: "Calgary",
     region: "AB",
     postalCode: "T2K 1B2",
@@ -37,14 +48,17 @@ export const site = {
   },
 
   hours: [
+    // CONFIRMED from the Google Business Profile, screenshotted by Steve 2026-09-14.
+    // These REPLACE placeholder defaults that were wrong on all seven days: the old set opened
+    // 30 min early Tue-Sat and closed 1-2 hours late every single day.
     // dayOfWeek: ISO day name; opens/closes: HH:MM (24h). closes > 24:00 means next day.
-    { dayOfWeek: "Monday",    opens: "11:00", closes: "24:00" },
-    { dayOfWeek: "Tuesday",   opens: "10:00", closes: "25:00" }, // 1am next day
-    { dayOfWeek: "Wednesday", opens: "10:00", closes: "25:00" },
-    { dayOfWeek: "Thursday",  opens: "10:00", closes: "25:00" },
-    { dayOfWeek: "Friday",    opens: "10:00", closes: "26:00" }, // 2am next day
-    { dayOfWeek: "Saturday",  opens: "10:00", closes: "26:00" },
-    { dayOfWeek: "Sunday",    opens: "11:00", closes: "24:00" },
+    { dayOfWeek: "Monday",    opens: "11:00", closes: "21:00" },
+    { dayOfWeek: "Tuesday",   opens: "10:30", closes: "22:00" },
+    { dayOfWeek: "Wednesday", opens: "10:30", closes: "22:00" },
+    { dayOfWeek: "Thursday",  opens: "10:30", closes: "24:00" },
+    { dayOfWeek: "Friday",    opens: "10:30", closes: "24:00" },
+    { dayOfWeek: "Saturday",  opens: "10:30", closes: "24:00" },
+    { dayOfWeek: "Sunday",    opens: "11:00", closes: "21:00" },
   ],
 
   founder: {
@@ -119,10 +133,14 @@ export const site = {
     "https://www.ubereats.com/ca/store/tops-pizza/Jj7lcjQGSmaveypFsPhsZQ",
   ],
 
-  // Aggregate rating, verify exact count from GBP; these reflect what we found publicly
+  // Aggregate rating. MEASURED 2026-09-15 from the Google Places API v1 (place
+  // ChIJY02FpLRlcVMRsckmxNq03Ws): rating 4.2, userRatingCount 221. Previous values
+  // (4.3 / 209) were a May 2026 reading off the Google search panel and were four
+  // months stale. This feeds schema.org aggregateRating in build.js, so a wrong figure
+  // goes to Google as structured data, not just to readers. Re-measure before changing.
   aggregateRating: {
-    ratingValue: "4.3",
-    reviewCount: "209" // real GBP count per Google search panel, May 2026
+    ratingValue: "4.2",
+    reviewCount: "221"
   },
 
   priceRange: "$$",
@@ -145,7 +163,18 @@ export const site = {
   sportsBar: {
     tvCount: 30, // confirm exact count with owner
     leagues: ["NHL", "CFL", "NFL", "MLB", "UFC", "NBA"],
-    amenities: ["Pool table", "Jukebox", "VLTs", "Full bar", "31 wing flavours"],
+    // VLTs: removed 2026-09-15, then RESTORED the same day on Steve's instruction:
+    // "Put the vlt references back on the website. We were a little too heavy handed to
+    // remove them." Background so nobody flip-flops this again: Peter had said "they
+    // aren't allowed to be advertised", and AGLC Liquor Licensee Handbook s.10.20.3 does
+    // require advertising or promotional material to be approved by AGLC in advance.
+    // BUT the handbook nowhere distinguishes MENTIONING an amenity from ADVERTISING it,
+    // and the definition of "advertising" that covers websites (s.7.1.1(a)) is expressly
+    // scoped "For all of Section 7", the LIQUOR section, not the Video Lottery section,
+    // whose own definitions never define the word. So the text does not settle it.
+    // Steve's call, made with that in front of him. To settle it properly: AGLC Customer
+    // Care 1-800-561-4415 / retailnetworks@aglc.ca (handbook s.10.25).
+    amenities: ["Pool table", "Jukebox", "Full bar", "VLTs", "31 wing flavours"],
   },
 };
 

@@ -8,6 +8,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { site, featuredPizzas, featuredNeighborhoods } from "./src/site.config.js";
 import { allNeighborhoods, allPizzas, dailySpecials, menuCategories, pizzaSizes, pizzaExtras, wingFlavors } from "./src/site.data.js";
@@ -53,17 +54,49 @@ const img = (originalUrl) => `${site.images?.cdnBase || 'https://images.leadconn
 
 // smartify: convert any remaining straight ' to typographic ’, but ONLY in text content , 
 // skip everything inside <script> and <style> blocks (those need straight quotes for JS/CSS).
+// linkifyPhone: wrap any bare phone number in a tel: link so it is tappable.
+// Steve, 2026-09-15: "Let's make the phone a clickable link any time we type it."
+// There were 188 plain-text occurrences across the site, including inside FAQ
+// answers, so this is done once at the template layer rather than in 188 places.
+//
+// THREE THINGS IT MUST NOT TOUCH, each verified against the source:
+//  1. Anything inside a tag, i.e. between < and >. The number appears in
+//     <meta property="business:contact_data:phone_number" content="..."> and in
+//     page `description` meta. Linkifying an attribute value breaks the markup.
+//  2. Text already inside an <a>. There are 21 existing tel: anchors; wrapping
+//     one again produces nested anchors, which is invalid HTML.
+//  3. <script>/<style> bodies. Two occurrences live in inline JS status
+//     messages. smartify() already isolates these blocks, and linkifyPhone is
+//     applied only to the same text spans smartify treats as prose.
+const linkifyPhone = (text) => {
+  const out = [];
+  let idx = 0;
+  // Split on tags and on whole <a>...</a> spans, leaving both untouched.
+  const skip = /<a\b[^>]*>[\s\S]*?<\/a>|<[^>]+>/gi;
+  let mm;
+  const wrap = (s) =>
+    s.replace(/\(403\)\s*275-2722/g, `<a href="tel:${site.nap.phone}">$&</a>`);
+  while ((mm = skip.exec(text)) !== null) {
+    out.push(wrap(text.slice(idx, mm.index)));
+    out.push(mm[0]);
+    idx = mm.index + mm[0].length;
+  }
+  out.push(wrap(text.slice(idx)));
+  return out.join("");
+};
+
 const smartify = (html) => {
   const parts = [];
   let i = 0;
   const re = /<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi;
   let m;
+  const prose = (s) => linkifyPhone(s.replace(/'/g, "’"));
   while ((m = re.exec(html)) !== null) {
-    parts.push(html.slice(i, m.index).replace(/'/g, "’")); // text before block, smartify
-    parts.push(m[0]);                                       // the block itself, leave alone
+    parts.push(prose(html.slice(i, m.index)));  // text before block, smartify + linkify
+    parts.push(m[0]);                            // the block itself, leave alone
     i = m.index + m[0].length;
   }
-  parts.push(html.slice(i).replace(/'/g, "’"));            // trailing text
+  parts.push(prose(html.slice(i)));             // trailing text
   return parts.join("");
 };
 
@@ -211,7 +244,7 @@ ${noindex ? `<meta name="robots" content="noindex,follow" />\n` : ""}<meta name=
 <!-- Schema.org JSON-LD -->
 ${jsonLd(schemas)}
 
-<link rel="stylesheet" href="/assets/style.css" />
+<link rel="stylesheet" href="/assets/style.css?v=${cssVersion}" />
 </head>
 <body>
 ${nav()}
@@ -234,6 +267,7 @@ const nav = () => `<header class="site-header">
       <a href="/sports-bar/">Sports Bar</a>
       <a href="/delivery/">Delivery</a>
       <a href="/about/">About</a>
+      <a href="/faq/">FAQ</a>
       <a href="/contact/">Contact</a>
     </nav>
     <a class="order-cta" href="tel:${site.nap.phone}">
@@ -327,6 +361,41 @@ const homeFaqs = [
   },
 ];
 
+// SINGLE SOURCE OF TRUTH for what counts as meat on this site. Defined here,
+// above vegFaqs, because vegFaqs evaluates it at DEFINITION time (allPizzas is
+// imported at line 13, so this is safe). Do NOT create a second copy: an
+// earlier version had this list duplicated in two places, and two copies of a
+// safety-critical dietary list drift apart.
+//
+// NOTE this is a blocklist and it is ONLY safe against allPizzas, whose
+// `ingredients` are structured arrays that were checked by hand across all 27.
+// It is NOT safe against prose descriptions: run against those it wrongly
+// cleared "Boneless Dry Ribs", "Greek Mezedes" (AAA Top Sirloin) and a burger.
+// Sides therefore use the explicit VEG_SIDE_NAMES allow-list instead.
+const VEG_MEAT_WORDS = ["pepperoni","bacon","ham","beef","sausage","salami","chicken",
+  "shrimp","donair","steak","veal","meat","anchov","tuna","sirloin","rib","fish","calamari"];
+
+const isVegetarianPizza = (p) =>
+  !(p.ingredients || []).some((i) => VEG_MEAT_WORDS.some((m) => i.toLowerCase().includes(m)));
+
+// Dietary questions, added 2026-09-15. Answers are derived from the menu data
+// at build time so they cannot drift from the actual menu. Poutine and soup of
+// the day are deliberately NOT claimed as vegetarian, they are unconfirmed.
+const vegFaqs = [
+  {
+    q: "Do you have vegetarian options?",
+    a: `Yes. ${allPizzas.filter(isVegetarianPizza).length} of our pizzas have no meat on them, and any pizza can be made without meat. We also have the TOPS Greek Salad, Bread Stix, Onion Rings, Nachos Supreme without the beef, and both desserts. See our vegetarian options page for the full list.`,
+  },
+  {
+    q: "Do you have a gluten free pizza crust?",
+    a: `Yes. Gluten free crust is available on ${pizzaExtras.glutenFreeCrust.availableOn.toLowerCase()} for an extra $${pizzaExtras.glutenFreeCrust.price}. It is prepared in a kitchen that also handles wheat, so if you are coeliac please tell us when you order.`,
+  },
+  {
+    q: "Is the vegetarian food vegan?",
+    a: `No. Our meat-free pizzas all have cheese on them and the Greek salad has feta. If you need dairy free, call us at ${site.nap.phoneDisplay} and we will tell you honestly what we can and cannot do.`,
+  },
+];
+
 const faqPageSchema = (faqs) => ({
   "@type": "FAQPage",
   "@id": `${site.url}/#faq`,
@@ -337,9 +406,12 @@ const faqPageSchema = (faqs) => ({
   })),
 });
 
-const faqSection = (faqs) => `
+// heading: pass "" to suppress the <h2>. The dedicated /faq/ page already has
+// "Frequently Asked Questions" as its <h1>, so without this it printed the same
+// heading twice in a row. Every other caller wants the default.
+const faqSection = (faqs, heading = "Frequently Asked Questions") => `
 <section class="story wrap" id="faq">
-  <h2>Frequently Asked Questions</h2>
+  ${heading ? `<h2>${esc(heading)}</h2>` : ""}
   <div class="faq-list">
     ${faqs
       .map(
@@ -385,7 +457,7 @@ const homepage = () => {
   <div class="feature">
     <span class="feature-icon">🍕</span>
     <h3>Legendary Pizzas</h3>
-    <p>Hand-tossed, fresh-made daily from a family recipe untouched since 1979. Premium toppings, real mozzarella, in-house sauce.</p>
+    <p>Hand-tossed, fresh-made daily from a family recipe untouched since ${site.yearFounded}. Premium toppings, real mozzarella, in-house sauce.</p>
   </div>
   <div class="feature">
     <span class="feature-icon">📺</span>
@@ -395,7 +467,7 @@ const homepage = () => {
   <div class="feature">
     <span class="feature-icon">🍺</span>
     <h3>Full Bar &amp; Pub Eats</h3>
-    <p>Cold beer, cocktails, highballs on special. Wings (50 flavours), burgers, pastas, classics. Pool table, jukebox, VLTs in the lounge.</p>
+    <p>Cold beer, cocktails, highballs on special. Wings (31 flavours), burgers, pastas, classics. Pool table, jukebox, VLTs in the lounge.</p>
   </div>
 </section>
 
@@ -426,6 +498,25 @@ const homepage = () => {
   <p><a class="text-link" href="/about/">Read the TOPS story →</a></p>
 </section>
 
+${/* The Will C. quote below is a real customer testimonial and it mentions VLTs.
+
+      ONE RULE: it is either VERBATIM or it is GONE. Never a trimmed version. On 2026-09-15 I
+      deleted the word VLTs from inside it while still presenting it as the customer's exact
+      words, which is misrepresentation. If it ever has to come off, remove the whole quote.
+      The verbatim original is preserved at build.js.bak-vlt-230522 line 452.
+
+      On the VLT references site-wide (6 places: this quote, the sports-bar FAQ, the
+      sports-bar feature copy, the About history, the sports-bar meta description, the
+      "While You're Here" list item, plus llms.txt and site.config.js amenities): they were
+      removed 2026-09-15 and RESTORED the same day on Steve's instruction, "We were a little
+      too heavy handed to remove them." The reasoning and the AGLC citations live in
+      src/site.config.js next to `amenities`, and in projects/tops-pizza-citations/.
+      Short version: s.10.20.3 is real but the handbook never distinguishes mentioning from
+      advertising. Not settled by the text. AGLC Customer Care 1-800-561-4415 settles it.
+
+      Note this is a JS comment, NOT an HTML comment. An earlier version of this note was
+      written as <!-- --> inside the template and shipped straight into dist/index.html.
+      Keep explanations out of emitted HTML. */''}
 <section class="reviews wrap">
   <h2>What Our Calgary Neighbors Say</h2>
   <p class="rating-summary">⭐ ${site.aggregateRating.ratingValue} / 5 across ${site.aggregateRating.reviewCount}+ reviews</p>
@@ -1020,9 +1111,13 @@ const menuLandingPage = () => {
     `).join("")}
   </div>
 
+  <h2>Vegetarian and Gluten Free</h2>
+  <p>${vegetarianPizzas().length} of our pizzas have no meat on them, and gluten free crust is available on ${pizzaExtras.glutenFreeCrust.availableOn.toLowerCase()}. See <a href="/vegetarian-options/">all vegetarian options</a>.</p>
+
   <h2>Order</h2>
   <p>Call to order, walk in, or delivery via Skip / Uber / DoorDash. <a class="btn btn-primary" href="tel:${site.nap.phone}">${esc(site.nap.phoneDisplay)}</a></p>
 </section>
+${faqSection(vegFaqs)}
 `;
   return layout({ title, description, canonical, schemas, body });
 };
@@ -1073,7 +1168,7 @@ const menuCategoryPage = (cat) => {
 <section class="prose wrap">
   ${isPizzas ? `
   <div class="pizza-intro">
-    <p><strong>Hand-made the traditional way, from scratch since 1975.</strong> We make our family secret sauce in-house with only the best selected ingredients and the best quality mozzarella cheese.</p>
+    <p><strong>Hand-made the traditional way, from scratch since ${site.yearFounded}.</strong> We make our family secret sauce in-house with only the best selected ingredients and the best quality mozzarella cheese.</p>
   </div>
 
   <h2>Sizes &amp; Crust Options</h2>
@@ -1114,6 +1209,9 @@ const menuCategoryPage = (cat) => {
       `).join("")}
     </tbody>
   </table>
+
+  <h2>Vegetarian and Gluten Free</h2>
+  <p>${vegetarianPizzas().length} of these pizzas have no meat on them, and any pizza can be made without. Gluten free crust is available on ${pizzaExtras.glutenFreeCrust.availableOn.toLowerCase()} for $${pizzaExtras.glutenFreeCrust.price}. See <a href="/vegetarian-options/">all vegetarian options</a>.</p>
   ` : `
   ${cat.note ? `<p class="menu-note">${esc(cat.note)}</p>` : ""}
   ${(cat.items || []).map(item => `
@@ -1150,11 +1248,184 @@ const menuCategoryPage = (cat) => {
   <p><a class="btn btn-primary" href="tel:${site.nap.phone}">Call ${esc(site.nap.phoneDisplay)}</a></p>
   <p>Or via <a href="${site.order.skipTheDishes}" rel="noopener">Skip</a>, <a href="${site.order.uberEats}" rel="noopener">Uber Eats</a>, <a href="${site.order.doorDash}" rel="noopener">DoorDash</a>.</p>
 </section>
+${isPizzas ? faqSection(vegFaqs) : ""}
 `;
   return layout({ title, description, canonical, schemas, body });
 };
 
 
+
+// ============================================================
+// PAGE: VEGETARIAN OPTIONS
+// Built 2026-09-15. TripAdvisor users were asking whether TOPS has vegetarian
+// food. It does, and the site never said so: "vegetarian" appeared only on
+// /pizza-menu/ and the Vegetarian pizza's own page. Calgary demand, measured
+// via DataForSEO 2026-09-15: "vegetarian restaurants calgary" 2,900/mo LOW
+// competition, "vegetarian food near me" 1,000/mo LOW, "gluten free pizza
+// calgary" 590/mo LOW.
+//
+// SAFETY RULES FOR THIS PAGE, people with dietary needs read it:
+//  - Pizzas are DERIVED from allPizzas ingredients at build time, never a
+//    hard-coded list, so the page cannot drift when Peter changes toppings.
+//  - Sides use an EXPLICIT ALLOW-LIST of verified item names. A meat-word
+//    blocklist was tried and wrongly cleared "Boneless Dry Ribs", "Greek
+//    Mezedes" (AAA Top Sirloin) and a burger, because those are prose
+//    descriptions. Do not switch this back to a blocklist.
+//  - Poutine (gravy is typically beef-based) and Market Soup (changes daily)
+//    are NOT listed as vegetarian. They are unconfirmed. Ask Peter.
+//  - Caesar Salad and Potato Skins contain bacon and are called out as such.
+// ============================================================
+// VEG_MEAT_WORDS and isVegetarianPizza are defined once, near vegFaqs above.
+const vegetarianPizzas = () => allPizzas.filter(isVegetarianPizza);
+
+// Verified by reading each description in src/site.data.js on 2026-09-15.
+const VEG_SIDE_NAMES = ["Bread Stix", "Onion Rings", "Nachos Supreme", "TOPS Greek Salad", "Tiramisu", "Blackout Torte"];
+
+const vegetarianSides = () => {
+  const out = [];
+  for (const cat of menuCategories) {
+    for (const item of cat.items || []) {
+      if (VEG_SIDE_NAMES.includes(item.name)) out.push({ ...item, category: cat.name });
+    }
+  }
+  return out;
+};
+
+const vegetarianPage = () => {
+  const pizzas = vegetarianPizzas();
+  const sides = vegetarianSides();
+  const title = `Vegetarian Options in NW Calgary | TOPS Pizza & Sports Bar`;
+  const description = `${pizzas.length} meat-free pizzas, a Greek salad, bread stix and more at TOPS Pizza & Sports Bar in Thorncliffe, NW Calgary. Gluten free crust available. Dine in, takeout or delivery.`;
+  const canonical = `${site.url}/vegetarian-options/`;
+
+  const schemas = [
+    restaurantSchema(),
+    {
+      "@type": "MenuSection",
+      "@id": `${canonical}#vegetarian`,
+      "name": "Vegetarian Options",
+      "description": description,
+      "hasMenuItem": [
+        ...pizzas.map((p) => ({
+          "@type": "MenuItem",
+          "name": `${p.name} Pizza`,
+          "url": `${site.url}/${p.slug}/`,
+          "description": p.ingredients.join(", "),
+          "suitableForDiet": "https://schema.org/VegetarianDiet",
+        })),
+        ...sides.map((s) => ({
+          "@type": "MenuItem",
+          "name": s.name,
+          "description": s.description,
+          "suitableForDiet": "https://schema.org/VegetarianDiet",
+        })),
+      ],
+    },
+    breadcrumbSchema([
+      { name: "Home", url: "/" },
+      { name: "Menu", url: "/menu/" },
+      { name: "Vegetarian Options", url: "/vegetarian-options/" },
+    ]),
+  ];
+
+  const body = `
+<section class="hero hero-page">
+  <div class="wrap">
+    <p class="eyebrow">🥬 Meat-Free at TOPS</p>
+    <h1>Vegetarian Options in NW Calgary</h1>
+    <p class="lede">${pizzas.length} pizzas with no meat on them, plus salads, starters and desserts. Family recipe since ${site.yearFounded}, in Thorncliffe.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="tel:${site.nap.phone}">Call ${esc(site.nap.phoneDisplay)}</a>
+      <a class="btn btn-secondary" href="/pizza-menu/">See the full pizza menu</a>
+    </div>
+  </div>
+</section>
+
+<section class="prose wrap">
+  <p class="menu-note">Vegetarian, not vegan. Every pizza below has real cheese on it, and the Greek salad has feta. If you need dairy-free, call us and we will tell you honestly what we can and cannot do.</p>
+
+  <h2>Meat-Free Pizzas (${pizzas.length})</h2>
+  <p>All available Personal 8", Medium 10", Large 12" and Extra Large 14". <strong>Gluten free crust</strong> is available on ${pizzaExtras.glutenFreeCrust.availableOn.toLowerCase()} for $${pizzaExtras.glutenFreeCrust.price}.</p>
+
+  <div class="pizza-grid">
+    ${pizzas.map((p) => `
+      <a class="pizza-card" href="/${p.slug}/">
+        <div class="pizza-card-body">
+          <h3>${p.signature ? "⭐ " : ""}${esc(p.name)}</h3>
+          <p class="ingredients">${esc(p.ingredients.join(", "))}</p>
+          <p class="menu-item-price">from $${esc(p.prices.personal)}</p>
+        </div>
+      </a>
+    `).join("")}
+  </div>
+
+  <h2>Starters, Salads &amp; Desserts</h2>
+  ${sides.map((item) => `
+    <article class="menu-item${item.image ? " menu-item-has-img" : ""}">
+      ${item.image ? `<div class="menu-item-img"><img src="${item.image}" alt="${esc(item.name)} at TOPS Pizza, NW Calgary" loading="lazy" /></div>` : ""}
+      <div class="menu-item-body">
+        <header class="menu-item-head">
+          <h3>${esc(item.name)}</h3>
+          <span class="menu-item-price">$${esc(item.price)}</span>
+        </header>
+        <p class="menu-item-desc">${esc(item.description)}</p>
+      </div>
+    </article>
+  `).join("")}
+
+  <p class="menu-note">Nachos Supreme comes vegetarian as listed. Ground beef is a paid add-on, so just do not add it.</p>
+
+  <h2>Build Your Own</h2>
+  <p>Any pizza can be made without meat, and extra vegetables are the same price as any other topping. Tell us what you want on it when you call.</p>
+  <p>With a main, you can substitute a Greek Salad, Yam Fries or Onion Rings for $3.95.</p>
+
+  <h2>Good To Know</h2>
+  <p>Two dishes read vegetarian and are not. Our <strong>Caesar Salad</strong> has crispy bacon in it, and the <strong>Potato Skins</strong> are filled with bacon. Worth knowing before you order.</p>
+
+  <h2>Order</h2>
+  <p><a class="btn btn-primary" href="tel:${site.nap.phone}">Call ${esc(site.nap.phoneDisplay)}</a></p>
+  <p>Or via <a href="${site.order.skipTheDishes}" rel="noopener">Skip</a>, <a href="${site.order.uberEats}" rel="noopener">Uber Eats</a>, <a href="${site.order.doorDash}" rel="noopener">DoorDash</a>.</p>
+</section>
+${faqSection(vegFaqs)}
+`;
+  return layout({ title, description, canonical, schemas, body });
+};
+
+// ============================================================
+// PAGE: FAQ
+// /faq/ returned 404 until 2026-09-15. The seven homepage questions existed
+// only on the homepage. This gives them a real page and adds the dietary
+// questions people were asking on TripAdvisor.
+// ============================================================
+const faqPage = () => {
+  const faqs = [...homeFaqs, ...vegFaqs];
+  const title = `Frequently Asked Questions | TOPS Pizza & Sports Bar`;
+  const description = `Hours, delivery areas, vegetarian and gluten free options, ordering and the sports bar at TOPS Pizza & Sports Bar in Thorncliffe, NW Calgary.`;
+  const canonical = `${site.url}/faq/`;
+  const schemas = [
+    restaurantSchema(),
+    faqPageSchema(faqs),
+    breadcrumbSchema([
+      { name: "Home", url: "/" },
+      { name: "FAQ", url: "/faq/" },
+    ]),
+  ];
+  const body = `
+<section class="hero hero-page">
+  <div class="wrap">
+    <p class="eyebrow">Questions</p>
+    <h1>Frequently Asked Questions</h1>
+    <p class="lede">The things people ask us most. If your question is not here, call us at ${esc(site.nap.phoneDisplay)} and a person will answer.</p>
+  </div>
+</section>
+${faqSection(faqs, "")}
+<section class="prose wrap">
+  <h2>Still Stuck?</h2>
+  <p><a class="btn btn-primary" href="tel:${site.nap.phone}">Call ${esc(site.nap.phoneDisplay)}</a> or see the <a href="/menu/">full menu</a>, <a href="/vegetarian-options/">vegetarian options</a>, or <a href="/delivery/">delivery areas</a>.</p>
+</section>
+`;
+  return layout({ title, description, canonical, schemas, body });
+};
 
 // ============================================================
 // PAGE: DELIVERY LANDING (lists all 20 NW Calgary neighborhoods)
@@ -1199,7 +1470,7 @@ const deliveryLandingPage = () => {
 <section class="prose wrap">
   <h2>Pick Your Neighborhood</h2>
   <p>Each neighborhood page has its own delivery details, landmarks we deliver near, and (where applicable) the signature TOPS pizza named after it.</p>
-  <div class="pizza-grid">
+  <div class="pizza-grid tight">
     ${allNeighborhoods.map(nh => `
       <a class="pizza-card" href="/${nh.slug}/">
         <div class="pizza-card-body">
@@ -1879,6 +2150,20 @@ const ownerPortalPage = () => {
 // ============================================================
 // CSS (single file, hand-written, no build dependency)
 // ============================================================
+// cssVersion: content hash of the stylesheet, appended to its <link href> so the URL
+// changes whenever the CSS changes. Cloudflare Pages serves /assets/* with
+// `cache-control: public, max-age=14400`, so without this a returning visitor keeps the
+// OLD stylesheet for up to FOUR HOURS after a deploy. Steve hit exactly that on
+// 2026-09-15: the layout change was live on the origin and invisible in his browser.
+//
+// Note to future me: every verification that day appended ?cb=<timestamp> to the URL,
+// which bypasses the very cache being tested. That proved the origin correct and proved
+// nothing about what a real visitor sees. Verify WITHOUT a cache buster.
+//
+// Safe despite being defined after layout() (line ~207): layout() is an arrow function
+// that is only INVOKED from the writePage block further down, long after this runs.
+// The declaration itself lives AFTER the css literal closes, because hashing `css`
+// before its own `const` initialises throws a temporal-dead-zone ReferenceError.
 const css = `
 :root {
   /* TOPS brand palette, gold on black, matching the existing logo */
@@ -1958,12 +2243,45 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 .signature { background: var(--white); }
 .pizza-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 16px; }
 .pizza-grid.small { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+/* .tight: for the 20 delivery neighbourhood cards. Steve, 2026-09-15: "I just want
+   to tighten up the large squares and make them smaller, so that visitors don't have
+   to scroll as much to find the communities and click through." A neighbourhood card
+   holds a name, a cross-street and a delivery time, so it does not need a 260px
+   column. At 200px the list goes from 3 columns to 5 (7 rows down to 4). Scoped as a
+   modifier so the 32 other pages using .pizza-grid are untouched. */
+/* align-items:start is THE fix, and it took Steve asking three times before I found it.
+   Grid items default to stretch, so every card in a row takes the height of the TALLEST
+   card in that row. Thorncliffe has one cross-street line, Huntington Hills has three, so
+   Thorncliffe was stretched to Huntington's height and showed a band of empty cream below
+   its text. THAT is the "space all around the card" he kept circling. It was never padding
+   and never font size; I shrank both twice without touching the cause.
+   Steve: "keep the font and spacing the same but reduce the size of the card."
+   NOTE: this comment lives INSIDE the css template literal. No backticks and no dollar-brace
+   in here, ever. A backtick around the word stretch ended the literal and broke the build. */
+.pizza-grid.tight { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; align-items: start; }
+/* Kill the DOUBLE padding. .pizza-card:not(.has-img) adds 16px top and bottom and
+   .pizza-card-body adds more on top of it, so a card wrapped ~56px of padding around
+   ~60px of text. That stacking, not the numbers, was the real cause of the empty
+   space. Inside .tight the outer padding is zero and only the body padding applies.
+   Steve, 2026-09-15: "there is still a lot of space between all around the community
+   name details." */
+.pizza-grid.tight .pizza-card:not(.has-img) { padding: 0; }
+.pizza-grid.tight .pizza-card-body { padding: 10px 14px 10px; }
+/* Font sizes and text spacing are deliberately NOT overridden here. I had shrunk them to
+   17px / 13px / 11px and Steve asked for them back at default. The card shrinks, the words
+   do not. Do not re-add these. */
 .pizza-card { display: block; background: var(--cream); border: 2px solid transparent; border-radius: 8px; text-decoration: none; color: var(--grey-900); transition: all .15s; overflow: hidden; }
-.pizza-card:not(.has-img) { padding: 24px 22px; }
+/* Tightened 2026-09-15 (Steve: "these are really big, we could make them a
+   little smaller"). Text-only cards were stacking this padding ON TOP of
+   .pizza-card-body's padding, so a neighbourhood card with three short lines
+   rendered as a tall mostly-empty box. Affects 32 pages: delivery
+   neighbourhoods, daily specials, menu categories, related pizzas, the
+   vegetarian pizzas and the homepage. Image cards keep their 160px photo. */
+.pizza-card:not(.has-img) { padding: 16px 18px; }
 .pizza-card:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(232, 178, 58, .15); }
 .pizza-card h3 { color: var(--black); margin-bottom: 6px; }
 .pizza-card-img { width: 100%; height: 160px; background-size: cover; background-position: center; background-color: var(--grey-100); }
-.pizza-card-body { padding: 18px 22px 22px; }
+.pizza-card-body { padding: 14px 18px 16px; }
 .pizza-card .ingredients { font-size: 14px; color: var(--grey-700); margin-bottom: 8px; }
 .pizza-card .neighborhood { font-size: 12px; color: var(--grey-500); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
@@ -2168,6 +2486,11 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 }
 `;
 
+// Content hash of the stylesheet, appended to its <link href>. See the note above
+// the css literal for why this exists. Declared HERE, after the literal closes,
+// because hashing `css` before its own const initialises is a TDZ ReferenceError.
+const cssVersion = crypto.createHash("md5").update(css).digest("hex").slice(0, 8);
+
 // ---------- favicon ----------
 const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="10" fill="#C8102E"/>
@@ -2195,6 +2518,8 @@ writePage("about/index.html",   smartify(about()));
 writePage("contact/index.html", smartify(contactPage()));
 writePage("sports-bar/index.html", smartify(sportsBar()));
 writePage("delivery/index.html",   smartify(deliveryLandingPage()));
+writePage("vegetarian-options/index.html", smartify(vegetarianPage()));
+writePage("faq/index.html",        smartify(faqPage()));
 
 // ---------- 20 neighborhood pages ----------
 console.log("\n  Neighborhoods:");
@@ -2236,6 +2561,8 @@ writePage("owner/index.html", smartify(ownerPortalPage()));
 
 // ---------- shared assets ----------
 fs.writeFileSync(path.join(OUT, "assets", "style.css"), css);
+console.log(`  ✓ assets/style.css  (cache-bust v=${cssVersion})`);
+
 fs.writeFileSync(path.join(OUT, "assets", "favicon.svg"), favicon);
 
 // Recursively copy local image assets to dist/assets/ (handles assets/menu/ etc.)
@@ -2270,6 +2597,8 @@ const allUrls = [
   `${site.url}/menu/`,
   `${site.url}/daily-specials/`,
   `${site.url}/delivery/`,
+  `${site.url}/vegetarian-options/`,
+  `${site.url}/faq/`,
   ...allNeighborhoods.map(nh => `${site.url}/${nh.slug}/`),
   ...allPizzas.map(p => `${site.url}/${p.slug}/`),
   ...dailySpecials.map(s => `${site.url}/${s.slug}/`),
@@ -2325,6 +2654,7 @@ fs.writeFileSync(path.join(OUT, "_redirects"), redirects);
 
 console.log(`\n✓ Built ${allUrls.length} pages + assets to: ${OUT}`);
 console.log(`  - 4 core pages (Home, About, Contact, Sports Bar)`);
+console.log(`  - 2 dietary/support pages (/vegetarian-options/, /faq/)`);
 console.log(`  - ${allNeighborhoods.length} neighborhood pages`);
 console.log(`  - ${allPizzas.length} pizza pages`);
 console.log(`  - ${dailySpecials.length + 1} daily-specials pages (+ landing)`);

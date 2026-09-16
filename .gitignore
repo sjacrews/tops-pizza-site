@@ -5,3 +5,8 @@ dist/
 .env
 .env.local
 .tmp-prompt-*.md
+
+# local edit backups, not source
+.bak/
+build.js.bak-*
+llms.txt.bak-*

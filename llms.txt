@@ -12,6 +12,8 @@ You can dine in, take out, or order delivery. Delivery is offered to 20+ NW Calg
 - [Daily Specials](https://topspizza.ca/daily-specials/): Daily specials, wing nights, game-day perks, and happy hour offers.
 - [Happy Hour](https://topspizza.ca/happy-hour/): Happy hour drink and snack specials at the Thorncliffe location.
 - [Sports Bar](https://topspizza.ca/sports-bar/): The sports bar side, with TVs for live games, full bar, pool, jukebox, and VLTs.
+- [Vegetarian Options](https://topspizza.ca/vegetarian-options/): Every meat-free pizza and dish at TOPS, with prices, plus gluten free crust details.
+- [FAQ](https://topspizza.ca/faq/): Hours, delivery, ordering, vegetarian and gluten free questions answered.
 - [About](https://topspizza.ca/about/): The family story behind TOPS, owned by the Tsoulamanis family with a recipe in use since 1975.
 
 ## Visit & order
