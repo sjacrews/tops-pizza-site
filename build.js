@@ -1525,7 +1525,7 @@ const reviewLandingPage = () => {
 <section class="review-funnel wrap">
   <div class="review-paths">
     <a class="path-card path-google" href="${site.nap.googleReviewUrl}" target="_blank" rel="noopener">
-      <div class="path-icon" aria-hidden="true">⭐</div>
+      <div class="path-icon star-row" aria-hidden="true"><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span></div>
       <h2>Post a Photo Review on Google</h2>
       <p>Takes 30 seconds. Helps new customers find us in NW Calgary search.</p>
       <p class="tip">📸 <em>If you took a photo of your food, add it. Reviews with a picture are the ones people actually stop and read.</em></p>
@@ -2507,6 +2507,13 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 .path-google:hover { border-color: var(--gold-dark); }
 .path-feedback { background: var(--cream); }
 .path-card .path-icon { font-size: 52px; margin-bottom: 12px; line-height: 1; }
+/* Five stars, graduated out from the middle: Steve, 2026-09-16, "smaller 2 on the outside
+   and the bigger star in the middle". Sized in em so the row scales off the 52px above and
+   the card height does not move. The div keeps aria-hidden, so this is never read aloud. */
+.path-card .star-row { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.path-card .star-row span { line-height: 1; }
+.path-card .star-row span:nth-child(1), .path-card .star-row span:nth-child(5) { font-size: .42em; }
+.path-card .star-row span:nth-child(2), .path-card .star-row span:nth-child(4) { font-size: .64em; }
 .path-card h2 { font-size: 24px; margin-bottom: 12px; color: var(--black); }
 .path-card p { font-size: 15px; color: var(--grey-700); margin-bottom: 10px; }
 .path-card .tip { font-size: 13px; color: var(--grey-500); }
