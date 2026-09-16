@@ -1523,6 +1523,17 @@ const reviewLandingPage = () => {
 </section>
 
 <section class="review-funnel wrap">
+  ${/* Mobile only. On a phone the second card sits below the fold, so a visitor can miss
+       that there IS a choice (Steve, 2026-09-16). On desktop both cards are visible side
+       by side at once, so the same shortcut would just be noise: hence display:none until
+       720px. These link straight to the destinations rather than anchoring down to the
+       cards, which saves a tap. */''}
+  <p class="choose-row">
+    <span class="choose-label">Choose one:</span>
+    <a href="${site.nap.googleReviewUrl}" target="_blank" rel="noopener">⭐ Google review</a>
+    <a href="/review/feedback/">💬 Private feedback</a>
+  </p>
+
   <div class="review-paths">
     <a class="path-card path-google" href="${site.nap.googleReviewUrl}" target="_blank" rel="noopener">
       <div class="path-icon star-row" aria-hidden="true"><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span></div>
@@ -2521,6 +2532,8 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 .path-card .tip { font-size: 13px; color: var(--grey-500); }
 .path-card .path-cta { display: inline-block; margin-top: 12px; color: var(--gold-dark); font-weight: 700; font-size: 15px; }
 .path-card:hover .path-cta { color: var(--black); }
+/* Hidden on desktop by design, see the note at the markup. */
+.choose-row { display: none; }
 .review-fineprint { text-align: center; color: var(--grey-500); font-size: 13px; max-width: 600px; margin: 32px auto 0; font-style: italic; }
 
 /* ===== Feedback form ===== */
@@ -2574,6 +2587,9 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 
 @media (max-width: 720px) {
   .review-paths { grid-template-columns: 1fr; }
+  .choose-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin: 0 0 20px; }
+  .choose-row .choose-label { width: 100%; text-align: center; font-size: 13px; font-weight: 600; color: var(--grey-700); margin-bottom: 2px; }
+  .choose-row a { font-size: 14px; font-weight: 700; color: var(--grey-900); text-decoration: none; border: 1px solid var(--gold); background: var(--cream); border-radius: 100px; padding: 9px 15px; }
 }
 
 /* Phones: claw back the width .rating-block's own padding costs, so all four face
@@ -2589,8 +2605,15 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 
 /* Responsive tweaks */
 @media (max-width: 720px) {
-  .site-header .nav { padding: 12px 16px; }
-  .primary-nav { width: 100%; justify-content: center; padding-top: 6px; gap: 14px; }
+  /* The sticky header was eating roughly a third of a phone screen before any content
+     (Steve, 2026-09-16). Cause: .primary-nav is width:100%, which breaks the flex line,
+     and because the DOM order is logo -> nav -> order button, the button was pushed to a
+     THIRD row. order:3 puts the logo and the Order button back on one row and lets the
+     links wrap underneath. The eight links genuinely cannot fit one line at 390px, they
+     measure ~470px, so two tight rows is the target, not one. */
+  .site-header .nav { padding: 8px 14px; gap: 8px; }
+  .logo img { height: 40px; }
+  .primary-nav { width: 100%; order: 3; justify-content: center; padding-top: 2px; gap: 6px 14px; }
   .primary-nav a { font-size: 14px; }
   .order-cta { font-size: 14px; padding: 8px 14px; }
   .hero { padding: 60px 0 50px; }
