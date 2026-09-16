@@ -260,7 +260,7 @@ const nav = () => `<header class="site-header">
     <a class="logo" href="/" aria-label="${esc(site.name)}, home">
       <img src="${site.brand.logoUrl}" alt="${esc(site.name)} logo" width="120" height="60" loading="eager" />
     </a>
-    <nav class="primary-nav" aria-label="Main">
+    <nav class="primary-nav" id="primary-nav" aria-label="Main">
       <a href="/">Home</a>
       <a href="/menu/">Menu</a>
       <a href="/pizza-menu/">Pizzas</a>
@@ -273,8 +273,46 @@ const nav = () => `<header class="site-header">
     <a class="order-cta" href="tel:${site.nap.phone}">
       <span class="cta-label">Order:</span> ${esc(site.nap.phoneDisplay)}
     </a>
+    ${/* Only ever visible on a phone AND only once scrolled. See the header rules in the
+         720px block. It is a real button, not a div, so it is keyboard reachable, and
+         aria-expanded is kept in sync by the script below. */''}
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Menu"><span aria-hidden="true">&#9776;</span></button>
   </div>
-</header>`;
+</header>
+<script>
+(function(){
+  var h=document.querySelector('.site-header');
+  var t=h?h.querySelector('.nav-toggle'):null;
+  if(!h||!t)return;
+  var open=false;
+  function setOpen(v){
+    open=v;
+    h.classList.toggle('nav-open',v);
+    t.setAttribute('aria-expanded',v?'true':'false');
+  }
+  t.addEventListener('click',function(e){e.stopPropagation();setOpen(!open);});
+  h.querySelectorAll('.primary-nav a').forEach(function(a){
+    a.addEventListener('click',function(){setOpen(false);});
+  });
+  document.addEventListener('click',function(e){if(open&&!h.contains(e.target))setOpen(false);});
+  document.addEventListener('keydown',function(e){if(open&&e.key==='Escape'){setOpen(false);t.focus();}});
+  var ticking=false;
+  function apply(){
+    var past=(window.pageYOffset||document.documentElement.scrollTop||0)>40;
+    if(past!==h.classList.contains('scrolled')){
+      h.classList.toggle('scrolled',past);
+      if(!past)setOpen(false);
+    }
+    ticking=false;
+  }
+  window.addEventListener('scroll',function(){
+    if(ticking)return;
+    ticking=true;
+    window.requestAnimationFrame(apply);
+  },{passive:true});
+  apply();
+})();
+</script>`;
 
 const footer = () => `<footer class="site-footer">
   <div class="wrap footer-grid">
@@ -2295,6 +2333,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .order-cta { background: var(--gold); color: var(--black); text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: 700; font-size: 15px; transition: background .15s; }
 .order-cta:hover { background: var(--gold-bright); }
 .order-cta .cta-label { opacity: .75; font-weight: 500; }
+/* Hidden everywhere by default. The 720px block turns it on, and only once .scrolled,
+   so desktop never sees a hamburger and the top of a phone page never does either. */
+.nav-toggle { display: none; background: none; border: 1px solid rgba(255,255,255,.28); color: var(--white); font-size: 20px; line-height: 1; padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+.nav-toggle:hover { border-color: var(--gold); color: var(--gold); }
 .logo img { display: block; height: 56px; width: auto; max-width: 140px; }
 
 /* Hero */
@@ -2613,17 +2655,25 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 
 /* Responsive tweaks */
 @media (max-width: 720px) {
-  /* The sticky header was eating roughly a third of a phone screen before any content
-     (Steve, 2026-09-16). Cause: .primary-nav is width:100%, which breaks the flex line,
-     and because the DOM order is logo -> nav -> order button, the button was pushed to a
-     THIRD row. order:3 puts the logo and the Order button back on one row and lets the
-     links wrap underneath. The eight links genuinely cannot fit one line at 390px, they
-     measure ~470px, so two tight rows is the target, not one. */
+  /* Phone header, two states (Steve, 2026-09-16).
+     AT REST: menu under the logo, call button centred beneath it. He asked for the menu
+     BESIDE the logo; at 390px the eight links measure ~470px so they physically cannot sit
+     next to it, and they wrap to their own row. Told him rather than silently reflowing.
+     SCROLLED: the links fold away behind the hamburger and the row collapses to
+     logo | phone | hamburger, which is the whole point, more page visible while reading. */
   .site-header .nav { padding: 8px 14px; gap: 8px; }
+  .logo { order: 1; }
   .logo img { height: 40px; }
-  .primary-nav { width: 100%; order: 3; justify-content: center; padding-top: 2px; gap: 6px 14px; }
+  .primary-nav { width: 100%; order: 2; justify-content: center; padding-top: 2px; gap: 6px 14px; }
   .primary-nav a { font-size: 14px; }
-  .order-cta { font-size: 14px; padding: 8px 14px; }
+  .order-cta { font-size: 14px; padding: 8px 14px; order: 3; margin: 2px auto 0; }
+
+  .site-header.scrolled .nav { padding: 6px 14px; }
+  .site-header.scrolled .logo img { height: 32px; }
+  .site-header.scrolled .primary-nav { display: none; }
+  .site-header.scrolled .order-cta { order: 2; margin: 0 auto; padding: 6px 12px; }
+  .site-header.scrolled .nav-toggle { display: inline-flex; align-items: center; order: 3; }
+  .site-header.scrolled.nav-open .primary-nav { display: flex; order: 4; width: 100%; padding-top: 10px; padding-bottom: 2px; }
   .hero { padding: 60px 0 50px; }
   .hero-home { padding: 70px 0 60px; }
   .neighborhoods { columns: 1; }
