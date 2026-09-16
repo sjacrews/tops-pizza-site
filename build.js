@@ -2675,14 +2675,22 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
        on the logo's line, then it grows into the leftover width and wraps its own links. */''}
   .primary-nav { width: auto; flex: 1 1 0; min-width: 0; order: 2; justify-content: center; padding-top: 0; gap: 6px 14px; }
   .primary-nav a { font-size: 14px; }
-  ${/* flex-basis 100% forces it onto its own line; max-width max-content keeps the button
-       its natural size; margin auto centres it there. The scrolled rule below MUST reset
-       that basis or the slim bar would break onto two rows. */''}
-  .order-cta { font-size: 14px; padding: 8px 14px; order: 3; flex: 0 0 100%; max-width: max-content; margin: 4px auto 0; }
+  ${/* An explicit flex line break, so the phone button drops to its own row UNDER the logo
+       and menu (Steve, 2026-09-16: "menu names along the top beside the logo, phone below
+       as it was"). Doing it with flex-basis:100% on the button itself does NOT work: a
+       max-width clamps the hypothetical main size that flexbox uses to decide wrapping, so
+       a basis of 100% was being clamped to the button's natural width and it stayed on the
+       logo's row. A zero-height full-width pseudo-element breaks the line unconditionally,
+       which lets the button keep its natural pill size and centre with margin auto. */''}
+  .site-header .nav::after { content: ""; flex: 0 0 100%; height: 0; order: 3; }
+  .order-cta { font-size: 14px; padding: 8px 14px; order: 4; flex: 0 0 auto; max-width: none; margin: 4px auto 0; }
 
   .site-header.scrolled .nav { padding: 6px 14px; }
   .site-header.scrolled .logo img { height: 32px; }
   .site-header.scrolled .primary-nav { display: none; }
+  ${/* The line break above must NOT survive into the slim bar, or logo | phone | hamburger
+       would split across two rows. Steve on the scrolled state: "that was perfect." */''}
+  .site-header.scrolled .nav::after { display: none; }
   .site-header.scrolled .order-cta { order: 2; flex: 0 1 auto; max-width: none; margin: 0 auto; padding: 6px 12px; }
   .site-header.scrolled .nav-toggle { display: inline-flex; align-items: center; order: 3; }
   .site-header.scrolled.nav-open .primary-nav { display: flex; order: 4; width: 100%; padding-top: 10px; padding-bottom: 2px; }
