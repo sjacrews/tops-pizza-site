@@ -1658,9 +1658,9 @@ const reviewFeedbackPage = () => {
       <span class="field-label">How was your visit overall?</span>
       <div class="sentiment-row">
         <label class="sentiment"><input type="radio" name="sentiment" value="great" /><span>😀 Great</span></label>
-        <label class="sentiment"><input type="radio" name="sentiment" value="ok" /><span>🙂 OK</span></label>
-        <label class="sentiment"><input type="radio" name="sentiment" value="meh" /><span>😐 Meh</span></label>
-        <label class="sentiment"><input type="radio" name="sentiment" value="bad" /><span>😞 Bad</span></label>
+        <label class="sentiment"><input type="radio" name="sentiment" value="good" /><span>🙂 Good</span></label>
+        <label class="sentiment"><input type="radio" name="sentiment" value="ok" /><span>😐 OK</span></label>
+        <label class="sentiment"><input type="radio" name="sentiment" value="meh" /><span>😞 Meh</span></label>
       </div>
     </label>
 
@@ -1671,9 +1671,9 @@ const reviewFeedbackPage = () => {
         <span class="field-label">The food</span>
         <div class="rating-opts">
           <label><input type="radio" name="rating_food" value="great" /><span>😀 Great</span></label>
-          <label><input type="radio" name="rating_food" value="ok" /><span>🙂 OK</span></label>
-          <label><input type="radio" name="rating_food" value="meh" /><span>😐 Meh</span></label>
-          <label><input type="radio" name="rating_food" value="bad" /><span>😞 Bad</span></label>
+          <label><input type="radio" name="rating_food" value="good" /><span>🙂 Good</span></label>
+          <label><input type="radio" name="rating_food" value="ok" /><span>😐 OK</span></label>
+          <label><input type="radio" name="rating_food" value="meh" /><span>😞 Meh</span></label>
         </div>
       </div>
 
@@ -1681,9 +1681,9 @@ const reviewFeedbackPage = () => {
         <span class="field-label">The service</span>
         <div class="rating-opts">
           <label><input type="radio" name="rating_service" value="great" /><span>😀 Great</span></label>
-          <label><input type="radio" name="rating_service" value="ok" /><span>🙂 OK</span></label>
-          <label><input type="radio" name="rating_service" value="meh" /><span>😐 Meh</span></label>
-          <label><input type="radio" name="rating_service" value="bad" /><span>😞 Bad</span></label>
+          <label><input type="radio" name="rating_service" value="good" /><span>🙂 Good</span></label>
+          <label><input type="radio" name="rating_service" value="ok" /><span>😐 OK</span></label>
+          <label><input type="radio" name="rating_service" value="meh" /><span>😞 Meh</span></label>
         </div>
       </div>
 
@@ -1691,9 +1691,9 @@ const reviewFeedbackPage = () => {
         <span class="field-label">Delivery, if you ordered in</span>
         <div class="rating-opts">
           <label><input type="radio" name="rating_delivery" value="great" /><span>😀 Great</span></label>
-          <label><input type="radio" name="rating_delivery" value="ok" /><span>🙂 OK</span></label>
-          <label><input type="radio" name="rating_delivery" value="meh" /><span>😐 Meh</span></label>
-          <label><input type="radio" name="rating_delivery" value="bad" /><span>😞 Bad</span></label>
+          <label><input type="radio" name="rating_delivery" value="good" /><span>🙂 Good</span></label>
+          <label><input type="radio" name="rating_delivery" value="ok" /><span>😐 OK</span></label>
+          <label><input type="radio" name="rating_delivery" value="meh" /><span>😞 Meh</span></label>
           ${/* "Didn't" stays plain on purpose. It is not a rating, it means the question did
                not apply, so a face would imply a sentiment the answer does not carry. */''}
           <label><input type="radio" name="rating_delivery" value="na" /><span>Didn't</span></label>
@@ -2558,13 +2558,16 @@ h3 { font-size: 20px; font-weight: 800; margin-bottom: 10px; }
 
 /* Phones: claw back the width .rating-block's own padding costs, so all four face
    options sit on ONE line like the sentiment row above them. Measured 2026-09-16 at
-   390px: without this, "Bad" wraps to a second line on all three rows. The sentiment
+   390px: without this, the last option wraps to a second line on all three rows. The sentiment
    row fits four because it is not inside a padded fieldset. */
 @media (max-width: 460px) {
   .rating-block { padding: 14px 9px; }
   .rating-opts { gap: 6px; }
   .rating-opts label { padding: 7px 10px; }
   .rating-opts span { font-size: 13.5px; }
+  .sentiment-row { gap: 6px; }
+  .sentiment { padding: 7px 10px; }
+  .sentiment span { font-size: 13.5px; }
 }
 
 /* Responsive tweaks */
