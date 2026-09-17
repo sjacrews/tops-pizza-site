@@ -1953,92 +1953,6 @@ const reviewThanksPage = () => {
 };
 
 // ============================================================
-// PAGE: STAFF COUPON REDEEM (/redeem/), private (noindex), no PIN
-// Staff type a coupon code -> validate against D1 -> mark redeemed ->
-// auto thank-you SMS to the customer. Shows the offer terms.
-// ============================================================
-const reviewRedeemPage = () => {
-  const title = `Redeem Coupon, TOPS Pizza & Sports Bar (Staff)`;
-  const description = `Staff tool: redeem a customer's $5 coupon.`;
-  const canonical = `${site.url}/redeem/`;
-  const schemas = [];
-
-  const body = `
-<section class="hero hero-page">
-  <div class="wrap">
-    <p class="eyebrow">Staff Tool</p>
-    <h1>Redeem a Coupon</h1>
-    <p class="lede">Type the code from the customer's text and tap Redeem. They'll get an automatic thank-you text.</p>
-  </div>
-</section>
-
-<section class="prose wrap" style="max-width:520px;">
-  <form id="redeem-form" onsubmit="return false;">
-    <label>
-      <span class="field-label">Coupon code</span>
-      <input type="text" id="redeem-code" autocomplete="off" autocapitalize="characters" spellcheck="false"
-        placeholder="TOPS-XXXX" style="text-transform:uppercase;font-size:22px;letter-spacing:2px;text-align:center;" />
-    </label>
-    <button type="submit" class="btn btn-primary" id="redeem-btn" style="width:100%;">Check &amp; Redeem</button>
-  </form>
-
-  <div id="redeem-result" style="margin-top:20px;padding:18px;border-radius:12px;display:none;font-size:17px;"></div>
-
-  <div class="casl-note" style="margin-top:24px;">
-    <strong>Offer terms:</strong> $5 off a minimum $25 order. Not valid on wing nights or in combination with other specials/offers. One-time use.
-  </div>
-</section>
-
-<script>
-  (function(){
-    var form = document.getElementById('redeem-form');
-    var input = document.getElementById('redeem-code');
-    var btn = document.getElementById('redeem-btn');
-    var result = document.getElementById('redeem-result');
-    function show(bg, color, html){
-      result.style.display = 'block';
-      result.style.background = bg;
-      result.style.color = color;
-      result.innerHTML = html;
-    }
-    form.addEventListener('submit', async function(){
-      var code = (input.value || '').trim().toUpperCase();
-      if (!code) { input.focus(); return; }
-      btn.disabled = true; btn.textContent = 'Checking…';
-      show('#f4f4f4', '#333', 'Checking…');
-      try {
-        var res = await fetch('/api/redeem', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: code })
-        });
-        var d = await res.json();
-        if (d.ok && d.status === 'redeemed') {
-          show('#e6f7e9', '#11631f', '✅ <strong>' + (d.amount || '$5') + ' redeemed' + (d.firstName ? ' for ' + d.firstName : '') + '.</strong><br/>Apply $5 off (min $25, not wing nights). ' + (d.smsSent ? 'Thank-you text sent. 📱' : ''));
-          input.value = '';
-        } else if (d.status === 'already_redeemed') {
-          show('#fde8e8', '#9b1c1c', '⛔ <strong>Already redeemed.</strong>' + (d.redeemedAt ? '<br/>Used on ' + d.redeemedAt : '') + '<br/>Do not apply the discount.');
-        } else {
-          show('#fff7e6', '#8a5a00', '⚠️ <strong>' + (d.message || 'Code not found.') + '</strong><br/>Do not apply the discount.');
-        }
-      } catch (e) {
-        show('#fde8e8', '#9b1c1c', '⚠️ Network error, try again.');
-      } finally {
-        btn.disabled = false; btn.textContent = 'Check & Redeem';
-      }
-    });
-  })();
-</script>
-`;
-  const html = layout({ title, description, canonical, schemas, body });
-  return html.replace(
-    '<meta name="viewport"',
-    '<meta name="robots" content="noindex, nofollow" />\n<meta name="viewport"'
-  );
-};
-
-
-// ============================================================
 // PAGE: OWNER UPDATE PORTAL (/owner/)
 // Lightweight form for the owner to request site changes.
 // Text input + Web Speech API voice input (browser-native, no API key).
@@ -2767,7 +2681,6 @@ writePage("review/index.html",          smartify(reviewLandingPage()));
 writePage("review/feedback/index.html", smartify(reviewFeedbackPage()));
 writePage("review/bonus/index.html",    smartify(reviewBonusPage()));
 writePage("review/thanks/index.html",   smartify(reviewThanksPage()));
-writePage("redeem/index.html",          smartify(reviewRedeemPage()));
 
 // ---------- owner update portal (1 page, noindex, Cloudflare Access-protected) ----------
 console.log("\n  Owner portal:");
