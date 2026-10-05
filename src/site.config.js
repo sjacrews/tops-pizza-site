@@ -72,7 +72,7 @@ export const site = {
 
   // Brand identity, extracted from the existing topspizza.ca site
   brand: {
-    logoUrl: "https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e6643bc5f22a097daa2132.png", // currently served from GHL CDN; replace with local /assets/logo.png once asset is downloaded
+    logoUrl: "/assets/logo.png", // self-hosted (byte-identical copy of the old GHL-hosted logo)
     primaryColor: "#E8B23A",   // warm gold from logo
     primaryDark:  "#B88823",   // gold hover/active
     backgroundDark: "#0A0A0A", // near-black hero/header
@@ -97,16 +97,16 @@ export const site = {
   },
 
   images: {
-    cdnBase: "https://images.leadconnectorhq.com/image/f_webp/q_80/r_1200/u_",
-    heroHome: "https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e6866dc5f22a09dcaa4153.jpeg",
-    heroSportsBar: "https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e6866de519ed546d248c86.jpeg",
-    foodA: "https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e6866d1870f4b7f84323eb.jpeg",
-    foodB: "https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e6866de519ed546d248c86.jpeg",
-    foodC: "https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e6866dc5f22a09dcaa4153.jpeg",
-    avatarDavid: "https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e6997d13c4b6b1210ef174.png",
-    avatarTerri: "https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e699ed37929495b4e3828b.png",
-    avatarWill:  "https://assets.cdn.filesafe.space/Ij3sOzQEo9kraqTbmAOy/media/67e69a8b1870f47402433016.png",
-    starDecor:   "https://assets.cdn.filesafe.space/75x6oVRlEkU7gyLcePUE/media/33045d7e-5160-4c8f-998e-672414b11c99.png",
+    cdnBase: "", // self-hosted since 2026-10-04; originals archived in _migration/ghl-originals/
+    heroHome: "/assets/ghl_food_c.webp",
+    heroSportsBar: "/assets/ghl_food_b.webp",
+    foodA: "/assets/ghl_food_a.webp",
+    foodB: "/assets/ghl_food_b.webp",
+    foodC: "/assets/ghl_food_c.webp",
+    avatarDavid: "/assets/ghl_avatar_david.webp",
+    avatarTerri: "/assets/ghl_avatar_terri.webp",
+    avatarWill:  "/assets/ghl_avatar_will.webp",
+    // starDecor (unused by build.js) archived at _migration/ghl-originals/orig_star_33045d7e.png
   },
 
   order: {

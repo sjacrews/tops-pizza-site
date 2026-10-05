@@ -49,8 +49,8 @@ const esc = (s) => String(s)
   .replace(/"/g, "&quot;")
   .replace(/'/g, "’"); // ’
 
-// img(): build a GHL-CDN URL for a hosted image
-const img = (originalUrl) => `${site.images?.cdnBase || 'https://images.leadconnectorhq.com/image/f_webp/q_80/r_1200/u_'}${originalUrl}`;
+// img(): resolve an image path. Images are self-hosted in /assets/ (cdnBase is empty).
+const img = (originalUrl) => `${site.images?.cdnBase || ''}${originalUrl}`;
 
 // smartify: convert any remaining straight ' to typographic ’, but ONLY in text content , 
 // skip everything inside <script> and <style> blocks (those need straight quotes for JS/CSS).
